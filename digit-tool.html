@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digit Tool - RoyalTraders</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #2c3e50;
+            --text-secondary: #6c757d;
+            --accent-green: #27ae60;
+            --accent-red: #e74c3c;
+            --accent-blue: #3498db;
+            --border-color: #dee2e6;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --card-radius: 12px;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #adb5bd;
+            --border-color: #495057;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            --accent-blue: #4fc3f7;
+            --accent-green: #2ecc71;
+            --accent-red: #ff6b6b;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+        .hidden { display: none !important; }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .card {
+            background: var(--bg-primary);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+        }
+        .section { margin-bottom: 1.5rem; }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            border-bottom: 2px solid var(--accent-blue);
+            padding-bottom: 0.25rem;
+        }
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .logo { width: 20px; height: 20px; }
+        .logo-text { font-weight: 700; font-size: 1.1rem; }
+        .header-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .main-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+        .nav-links-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.8rem;
+            text-decoration: none;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .nav-link i { margin-right: 0.4rem; font-size: 0.9rem; }
+        .nav-right-actions { display: flex; align-items: center; gap: 0.5rem; }
+        .status-tag {
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-tag.running { background: var(--accent-green); color: white; }
+        .status-tag.not-running { background: #ffc107; color: #212529; }
+        .status-tag.connecting { background: #3498db; color: white; }
+        .status-tag.error { background: var(--accent-red); color: white; }
+        .btn {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn-run {
+            background: var(--accent-green);
+            color: white;
+            padding: 0.5rem 1rem;
+        }
+        .btn-run:hover { background: #219a52; }
+        .btn-secondary { background: var(--accent-blue); color: white; }
+        .btn-secondary:hover { background: #2980b9; }
+        .btn-sm { padding: 0.2rem 0.4rem; font-size: 0.8rem; }
+        .main-content {
+            padding: 1rem;
+            max-width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+            min-height: calc(100vh - 120px);
+        }
+        .warning-bar {
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .main-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+        .footer-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .footer-btn:hover { color: var(--accent-blue); }
+        .hamburger {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            background: none;
+            border: none;
+        }
+        /* Digit Tool Specific Styles */
+        .page-heading {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .page-subheading {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+        .analysis-container { padding: 1rem; }
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .filter-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .form-control {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px var(--accent-blue);
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-grow: 1;
+            margin-left: 1rem;
+        }
+        .slider-container label {
+            white-space: nowrap;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .slider-container input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .digit-circles-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+        .digit-circle-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 65px;
+            text-align: center;
+        }
+        .digit-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #34495e;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .digit-probability {
+            margin-top: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .digit-circle.most-frequent {
+            background: var(--accent-green);
+            box-shadow: 0 0 15px var(--accent-green);
+        }
+        .digit-circle.least-frequent {
+            background: var(--accent-red);
+            box-shadow: 0 0 15px var(--accent-red);
+        }
+        .live-tick-display { text-align: center; margin-top: 1.5rem; }
+        .live-tick-display .label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+        .live-tick-display .price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0.25rem 0;
+        }
+        .analysis-section {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .analysis-box {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+        .analysis-box h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--accent-blue);
+            padding-bottom: 0.25rem;
+        }
+        .analysis-box .content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        .analysis-box .over-under-container,
+        .analysis-box .matches-differs-container {
+            flex: 1;
+            display: flex;
+            gap: 0.3rem;
+            text-align: center;
+        }
+        .analysis-box .over-under-container > div,
+        .analysis-box .matches-differs-container > div {
+            flex: 1;
+            padding: 0.5rem;
+            border-radius: 6px;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .analysis-box .over-under-container .over { background: var(--accent-blue); }
+        .analysis-box .over-under-container .under { background: var(--accent-red); }
+        .analysis-box .matches-differs-container .matches { background: var(--accent-blue); }
+        .analysis-box .matches-differs-container .differs { background: var(--accent-red); }
+        .analysis-box .over-under-container .over.active,
+        .analysis-box .matches-differs-container .matches.active {
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+        .analysis-box .matches-differs-container .differs.active,
+        .analysis-box .over-under-container .under.active {
+            background: var(--accent-red);
+            box-shadow: 0 0 10px var(--accent-red);
+        }
+        .analysis-box .current-streak {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.3rem;
+            text-align: right;
+        }
+        .analysis-box .mini-digit-sequence {
+            display: flex;
+            gap: 0.3rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .analysis-box .mini-digit-box {
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            border-radius: 4px;
+        }
+        .analysis-box .mini-digit-box.over-win,
+        .analysis-box .mini-digit-box.matches-win { background: var(--accent-green); }
+        .analysis-box .mini-digit-box.under-win,
+        .analysis-box .mini-digit-box.differs-win { background: var(--accent-red); }
+        .guides-container {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .guide-box {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+        }
+        .guide-box h4 {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.25rem;
+        }
+        .guide-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+        }
+        .guide-table th, .guide-table td {
+            padding: 0.4rem;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .guide-table th {
+            background: #dbe4ee;
+            font-weight: 700;
+        }
+        @media (max-width: 768px) {
+            .nav-links-container {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                background: var(--bg-primary);
+                position: absolute;
+                top: 100%;
+                left: 0;
+                padding: 1rem;
+                z-index: 10;
+                border-top: 1px solid var(--border-color);
+            }
+            .nav-links-container.active { display: flex; }
+            .hamburger { display: block; }
+            .top-header, .main-content, .main-footer { padding: 0.5rem; }
+            .page-heading { font-size: 1.25rem; }
+            .page-subheading { font-size: 0.9rem; }
+            .controls-bar { flex-direction: column; align-items: flex-start; }
+            .slider-container { margin-left: 0; margin-top: 0.5rem; }
+            .digit-circle { width: 40px; height: 40px; font-size: 1.2rem; }
+            .digit-circle-item { width: 55px; }
+            .digit-probability { font-size: 0.7rem; }
+            .live-tick-display .price { font-size: 1.5rem; }
+            .analysis-section { flex-direction: column; }
+            .analysis-box .content { flex-direction: column; gap: 0.5rem; }
+            .btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+            .btn-run { padding: 0.4rem 0.8rem; }
+            .analysis-box h3 { font-size: 1rem; }
+            .analysis-box .over-under-container > div,
+            .analysis-box .matches-differs-container > div { font-size: 0.8rem; padding: 0.4rem; }
+            .guide-box h4 { font-size: 0.9rem; }
+            .guide-table { font-size: 0.7rem; }
+            .guide-table th, .guide-table td { padding: 0.3rem; }
+        }
+        @media (max-width: 480px) {
+            .logo-text { font-size: 1rem; }
+            .btn-sm { padding: 0.15rem 0.3rem; font-size: 0.75rem; }
+            .section-title { font-size: 1.1rem; }
+            .filter-group label, .slider-container label { font-size: 0.8rem; }
+            .form-control { font-size: 0.8rem; }
+            .digit-circle { width: 35px; height: 35px; font-size: 1rem; }
+            .digit-circle-item { width: 50px; }
+            .digit-probability { font-size: 0.65rem; }
+            .live-tick-display .price { font-size: 1.2rem; }
+            .analysis-box .over-under-container > div,
+            .analysis-box .matches-differs-container > div { font-size: 0.7rem; }
+            .analysis-box .current-streak { font-size: 0.7rem; }
+            .analysis-box .mini-digit-box { width: 18px; height: 18px; font-size: 0.6rem; }
+            .guide-box h4 { font-size: 0.85rem; }
+            .guide-table { font-size: 0.65rem; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <header class="top-header">
+        <div class="header-left">
+            <svg class="logo" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7V17L12 22L22 17V7L12 2ZM12 4.144L20 8.5L12 12.856L4 8.5L12 4.144ZM4 10.5L11 14.5V20.856L4 16.5V10.5ZM13 14.5L20 10.5V16.5L13 20.856V14.5Z"/>
+            </svg>
+            <span class="logo-text">RoyalTraders</span>
+        </div>
+        <div class="header-right">
+            <div id="user-display" class="user-info-container hidden" style="display: flex; align-items: center; gap: 0.5rem;">
+                <div id="user-initials" style="background-color: #5c6bc0; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold;"></div>
+                <img id="country-flag" src="" alt="Country Flag" style="width: 25px; height: auto;">
+                <span id="user-balance" style="font-weight: bold;"></span>
+                <button id="logout-btn" class="btn btn-secondary btn-sm">Log Out</button>
+            </div>
+            <div id="auth-links" class="auth-links-container">
+                <button id="deriv-auth-btn" class="btn btn-secondary">Log in / Sign up with Deriv</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <button class="hamburger" aria-label="Toggle Menu"><i class="fa-solid fa-bars"></i></button>
+        <div class="nav-links-container">
+            <a href="index.html" class="nav-link" aria-label="Dashboard" data-page="index.html"><i class="fa-solid fa-home"></i><span>Dashboard</span></a>
+            <a href="bot-builder.html" class="nav-link" aria-label="Bot Builder" data-page="bot-builder.html"><i class="fa-solid fa-hammer"></i><span>Bot Builder</span></a>
+            <a href="analysis-tool.html" class="nav-link" aria-label="Analysis Tool" data-page="analysis-tool.html"><i class="fa-solid fa-chart-line"></i><span>Analysis Tool</span></a>
+            <a href="batch-trader.html" class="nav-link" aria-label="Batch Trader" data-page="batch-trader.html"><i class="fa-solid fa-layer-group"></i><span>Batch Trader</span></a>
+            <a href="market-analyzer.html" class="nav-link" aria-label="Market Analyzer" data-page="market-analyzer.html"><i class="fa-solid fa-chart-area"></i><span>Market Analyzer</span></a>
+            <a href="frequency-analysis.html" class="nav-link" aria-label="Frequency Analysis" data-page="frequency-analysis.html"><i class="fa-solid fa-calculator"></i><span>Frequency Analysis</span></a>
+            <a href="digit-tool.html" class="nav-link active" aria-label="Digit Tool" data-page="digit-tool.html"><i class="fa-solid fa-fingerprint"></i><span>Digit Tool</span></a>
+            <a href="free-bots.html" class="nav-link" aria-label="Free Bots" data-page="free-bots.html"><i class="fa-solid fa-robot"></i><span>Free Bots</span></a>
+            <a href="copy-trader.html" class="nav-link" aria-label="Copy Trader" data-page="copy-trader.html"><i class="fa-solid fa-copy"></i><span>Copy Trader</span></a>
+            <a href="charts.html" class="nav-link" aria-label="Charts" data-page="charts.html"><i class="fa-solid fa-chart-bar"></i><span>Charts</span></a>
+        </div>
+        <div class="nav-right-actions">
+            <span id="statusTag" class="status-tag not-running">Not Running</span>
+            <button id="runButton" class="btn btn-run"><i class="fa-solid fa-play"></i><span id="runBtnText">Run Analysis</span></button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div data-page-content="digit-tool.html">
+            <h1 class="page-heading">Digit Tool</h1>
+            <p class="page-subheading">Predict and analyze last digits with live data streams.</p>
+            <div class="card analysis-container">
+                <div class="controls-bar">
+                    <div class="filter-group">
+                        <label for="assetFreq">Select Market:</label>
+                        <select id="assetFreq" class="form-control">
+                            <option value="R_10">Volatility 10 Index</option>
+                            <option value="R_25">Volatility 25 Index</option>
+                            <option value="R_50">Volatility 50 Index</option>
+                            <option value="R_75">Volatility 75 Index</option>
+                            <option value="R_100" selected>Volatility 100 Index</option>
+                            <option value="JD10">Jump 10 Index</option>
+                            <option value="JD25">Jump 25 Index</option>
+                            <option value="JD50">Jump 50 Index</option>
+                            <option value="JD75">Jump 75 Index</option>
+                            <option value="JD100">Jump 100 Index</option>
+                            <option value="BOOM1000">Boom 1000 Index</option>
+                            <option value="BOOM500">Boom 500 Index</option>
+                            <option value="BOOM300">Boom 300 Index</option>
+                            <option value="CRASH1000">Crash 1000 Index</option>
+                            <option value="CRASH500">Crash 500 Index</option>
+                            <option value="CRASH300">Crash 300 Index</option>
+                            <option value="STEP">Step Index</option>
+                        </select>
+                    </div>
+                    <div class="slider-container">
+                        <label for="sampleSize">Sample Size:</label>
+                        <input type="range" id="sampleSize" name="sampleSize" min="100" max="1000" value="500">
+                        <span id="sampleSizeValue">500</span>
+                    </div>
+                </div>
+                <div class="live-tick-display">
+                    <div class="label">Price</div>
+                    <div class="price" id="livePriceDisplay">--</div>
+                </div>
+                <div class="circle-analysis-section">
+                    <div class="section-title">Digit Frequency Visualizer</div>
+                    <div class="digit-circles-container" id="digitCirclesContainer"></div>
+                </div>
+                <div class="analysis-section">
+                    <div class="analysis-box">
+                        <h3>Over/Under Analysis</h3>
+                        <div class="content">
+                            <div class="over-under-container">
+                                <div class="over">
+                                    <span id="overPercent">--</span>%<br>Over
+                                </div>
+                                <div class="under">
+                                    <span id="underPercent">--</span>%<br>Under
+                                </div>
+                            </div>
+                        </div>
+                        <div class="current-streak">Current Streak: <span id="overUnderStreak">0</span>x <span id="overUnderType">--</span></div>
+                        <div class="mini-digit-sequence" id="overUnderSequence"></div>
+                    </div>
+                    <div class="analysis-box">
+                        <h3>Matches/Differs Analysis</h3>
+                        <div class="content">
+                            <div class="matches-differs-container">
+                                <div class="matches">
+                                    <span id="matchesPercent">--</span>%<br>Matches
+                                </div>
+                                <div class="differs">
+                                    <span id="differsPercent">--</span>%<br>Differs
+                                </div>
+                            </div>
+                        </div>
+                        <div class="current-streak">Current Streak: <span id="matchesDiffersStreak">0</span>x <span id="matchesDiffersType">--</span></div>
+                        <div class="mini-digit-sequence" id="matchesDiffersSequence"></div>
+                    </div>
+                </div>
+                <div class="guides-container">
+                    <div class="guide-box">
+                        <h4>Trading Probability Guide</h4>
+                        <table class="guide-table">
+                            <thead>
+                                <tr>
+                                    <th>Over Probabilities</th>
+                                    <th>1</th>
+                                    <th>2</th>
+                                    <th>3</th>
+                                    <th>4</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td>90%</td>
+                                    <td>85%</td>
+                                    <td>70%</td>
+                                    <td>60%</td>
+                                </tr>
+                                <tr>
+                                    <th></th>
+                                    <th>5</th>
+                                    <th>6</th>
+                                    <th>7</th>
+                                    <th>8</th>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>55%</td>
+                                    <td>40%</td>
+                                    <td>30%</td>
+                                    <td>25%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <table class="guide-table" style="margin-top: 1rem;">
+                            <thead>
+                                <tr>
+                                    <th>Under Probabilities</th>
+                                    <th>1</th>
+                                    <th>2</th>
+                                    <th>3</th>
+                                    <th>4</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td>25%</td>
+                                    <td>30%</td>
+                                    <td>40%</td>
+                                    <td>55%</td>
+                                </tr>
+                                <tr>
+                                    <th></th>
+                                    <th>5</th>
+                                    <th>6</th>
+                                    <th>7</th>
+                                    <th>8</th>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>60%</td>
+                                    <td>70%</td>
+                                    <td>85%</td>
+                                    <td>90%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="guide-box">
+                        <h4>Signal Strength Guide</h4>
+                        <table class="guide-table">
+                            <thead>
+                                <tr>
+                                    <th>Pattern</th>
+                                    <th>Type/Guide</th>
+                                    <th>Buy/Follow</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2 Under, 2 Over</td>
+                                    <td>Range Trade</td>
+                                    <td>Buy Over</td>
+                                </tr>
+                                <tr>
+                                    <td>3 Over, 3 Under</td>
+                                    <td>Range Trade</td>
+                                    <td>Buy Over</td>
+                                </tr>
+                                <tr>
+                                    <td>2 Under, 2 Over, 2 Under</td>
+                                    <td>Follow Trade</td>
+                                    <td>Buy Under</td>
+                                </tr>
+                                <tr>
+                                    <td>3 Under, 3 Over, 3 Under</td>
+                                    <td>Follow Trade</td>
+                                    <td>Buy Under</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="warning-bar">
+        <strong>Disclaimer:</strong> Trading involves risk. All analysis tools and bots are for informational purposes only.
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-left">
+            <span id="dateTime"></span>
+        </div>
+        <div class="footer-right">
+            <button id="settingsToggle" class="footer-btn" aria-label="Settings"><i class="fa-solid fa-cog"></i></button>
+            <button id="darkModeToggle" class="footer-btn" aria-label="Toggle dark/light mode"><i class="fa-solid fa-moon"></i></button>
+            <div class="language-select" style="display: flex; align-items: center;">
+                <button class="footer-btn" aria-label="Select language"><i class="fa-solid fa-globe"></i></button>
+                <i class="fa-solid fa-caret-down" style="margin-left: 0.25rem; color: var(--text-secondary);"></i>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        // Deriv Authentication
+        document.addEventListener('DOMContentLoaded', () => {
+            const APP_ID = '99626';
+            const derivAuthBtn = document.getElementById('deriv-auth-btn');
+            const userDisplay = document.getElementById('user-display');
+            const authLinks = document.getElementById('auth-links');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userInitials = document.getElementById('user-initials');
+            const userBalance = document.getElementById('user-balance');
+
+            if (derivAuthBtn) {
+                derivAuthBtn.addEventListener('click', () => {
+                    const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${APP_ID}&l=en&brand=deriv`;
+                    window.location.href = oauthUrl;
+                });
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    sessionStorage.removeItem('deriv_token');
+                    updateUIForLoginState(false);
+                    window.location.reload();
+                });
+            }
+
+            function updateUIForLoginState(isLoggedIn) {
+                if (isLoggedIn) {
+                    authLinks.classList.add('hidden');
+                    userDisplay.classList.remove('hidden');
+                    userInitials.textContent = 'RT';
+                    userBalance.textContent = '$1,250.00';
+                } else {
+                    authLinks.classList.remove('hidden');
+                    userDisplay.classList.add('hidden');
+                }
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            if (token) {
+                sessionStorage.setItem('deriv_token', token);
+                updateUIForLoginState(true);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                const storedToken = sessionStorage.getItem('deriv_token');
+                updateUIForLoginState(!!storedToken);
+            }
+
+            // Hamburger Menu
+            const hamburger = document.querySelector('.hamburger');
+            const navLinks = document.querySelector('.nav-links-container');
+            if (hamburger) {
+                hamburger.addEventListener('click', () => {
+                    navLinks.classList.toggle('active');
+                    const icon = hamburger.querySelector('i');
+                    icon.classList.toggle('fa-bars');
+                    icon.classList.toggle('fa-times');
+                });
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Shared Features
+            const currentPage = window.location.pathname.split('/').pop() || 'digit-tool.html';
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.page === currentPage);
+            });
+
+            function updateDateTime() {
+                const now = new Date();
+                document.getElementById('dateTime').textContent = now.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' });
+            }
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            darkModeToggle.addEventListener('click', () => {
+                const body = document.body;
+                const currentTheme = body.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                body.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                darkModeToggle.querySelector('i').className = newTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+            });
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+            darkModeToggle.querySelector('i').className = savedTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+
+            document.getElementById('settingsToggle').addEventListener('click', () => {
+                alert('Settings modal would open here.');
+            });
+
+            // Digit Tool Functionality
+            const runButton = document.getElementById('runButton');
+            const runBtnText = document.getElementById('runBtnText');
+            const assetSelect = document.getElementById('assetFreq');
+            const sampleSizeSlider = document.getElementById('sampleSize');
+            const sampleSizeValueSpan = document.getElementById('sampleSizeValue');
+            const livePriceDisplay = document.getElementById('livePriceDisplay');
+            const digitCirclesContainer = document.getElementById('digitCirclesContainer');
+            const statusTag = document.getElementById('statusTag');
+            const overPercentSpan = document.getElementById('overPercent');
+            const underPercentSpan = document.getElementById('underPercent');
+            const overUnderStreakSpan = document.getElementById('overUnderStreak');
+            const overUnderTypeSpan = document.getElementById('overUnderType');
+            const overUnderSequenceDiv = document.getElementById('overUnderSequence');
+            const matchesPercentSpan = document.getElementById('matchesPercent');
+            const differsPercentSpan = document.getElementById('differsPercent');
+            const matchesDiffersStreakSpan = document.getElementById('matchesDiffersStreak');
+            const matchesDiffersTypeSpan = document.getElementById('matchesDiffersType');
+            const matchesDiffersSequenceDiv = document.getElementById('matchesDiffersSequence');
+
+            const APP_ID = '99626';
+            let liveDataWs = null;
+            let digitCounts = Array(10).fill(0);
+            let liveTickHistory = [];
+            let overUnderSequence = [];
+            let matchesDiffersSequence = [];
+            let overUnderStreak = { count: 0, type: null };
+            let matchesDiffersStreak = { count: 0, type: null };
+            let matchesTargetDigit = -1;
+
+            function generateDigitCircles() {
+                digitCirclesContainer.innerHTML = '';
+                for (let i = 0; i < 10; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'digit-circle-item';
+                    item.dataset.digit = i;
+                    const circle = document.createElement('div');
+                    circle.className = 'digit-circle';
+                    circle.textContent = i;
+                    const probability = document.createElement('div');
+                    probability.className = 'digit-probability';
+                    probability.textContent = '0.00%';
+                    item.appendChild(circle);
+                    item.appendChild(probability);
+                    digitCirclesContainer.appendChild(item);
+                }
+            }
+
+            function updateDigitProbabilities() {
+                const totalTicks = liveTickHistory.length;
+                let maxCount = -1;
+                let minCount = Infinity;
+                let mostFrequentDigit = -1;
+                let leastFrequentDigit = -1;
+
+                document.querySelectorAll('.digit-circle-item').forEach((item, index) => {
+                    const count = digitCounts[index];
+                    const probability = totalTicks > 0 ? ((count / totalTicks) * 100).toFixed(2) : '0.00';
+                    item.querySelector('.digit-probability').textContent = `${probability}%`;
+                    item.querySelector('.digit-circle').classList.remove('most-frequent', 'least-frequent');
+                    if (totalTicks > 0) {
+                        if (count > maxCount) {
+                            maxCount = count;
+                            mostFrequentDigit = index;
+                        }
+                        if (count < minCount) {
+                            minCount = count;
+                            leastFrequentDigit = index;
+                        }
+                    }
+                });
+
+                matchesTargetDigit = mostFrequentDigit;
+
+                if (totalTicks > 0 && mostFrequentDigit !== leastFrequentDigit) {
+                    const allCountsAreSame = digitCounts.every(val => val === digitCounts[0]);
+                    if (!allCountsAreSame) {
+                        document.querySelector(`.digit-circle-item[data-digit="${mostFrequentDigit}"] .digit-circle`).classList.add('most-frequent');
+                        document.querySelector(`.digit-circle-item[data-digit="${leastFrequentDigit}"] .digit-circle`).classList.add('least-frequent');
+                    }
+                }
+            }
+
+            function updateOverUnderAnalysis(lastDigit) {
+                if (lastDigit === -1) {
+                    overPercentSpan.textContent = '--';
+                    underPercentSpan.textContent = '--';
+                    overUnderStreakSpan.textContent = '0';
+                    overUnderTypeSpan.textContent = '--';
+                    overUnderSequenceDiv.innerHTML = '';
+                    return;
+                }
+                const overUnderSeparator = 5;
+                const outcome = lastDigit >= overUnderSeparator ? 'O' : 'U';
+                overUnderSequence.push(outcome);
+                if (overUnderSequence.length > 10) {
+                    overUnderSequence.shift();
+                }
+                const overCount = overUnderSequence.filter(d => d === 'O').length;
+                const underCount = overUnderSequence.filter(d => d === 'U').length;
+                const total = overUnderSequence.length;
+
+                overPercentSpan.textContent = total > 0 ? ((overCount / total) * 100).toFixed(2) : '0.00';
+                underPercentSpan.textContent = total > 0 ? ((underCount / total) * 100).toFixed(2) : '0.00';
+
+                if (overUnderStreak.type === outcome) {
+                    overUnderStreak.count++;
+                } else {
+                    overUnderStreak.count = 1;
+                    overUnderStreak.type = outcome;
+                }
+                overUnderStreakSpan.textContent = overUnderStreak.count;
+                overUnderTypeSpan.textContent = overUnderStreak.type === 'O' ? 'Over' : 'Under';
+                document.querySelector('.over-under-container .over').classList.toggle('active', outcome === 'O');
+                document.querySelector('.over-under-container .under').classList.toggle('active', outcome === 'U');
+
+                overUnderSequenceDiv.innerHTML = overUnderSequence.map(o => 
+                    `<div class="mini-digit-box ${o === 'O' ? 'over-win' : 'under-win'}">${o}</div>`
+                ).join('');
+            }
+
+            function updateMatchesDiffersAnalysis(lastDigit) {
+                if (lastDigit === -1 || matchesTargetDigit === -1) {
+                    matchesPercentSpan.textContent = '--';
+                    differsPercentSpan.textContent = '--';
+                    matchesDiffersStreakSpan.textContent = '0';
+                    matchesDiffersTypeSpan.textContent = '--';
+                    matchesDiffersSequenceDiv.innerHTML = '';
+                    return;
+                }
+                const outcome = lastDigit === matchesTargetDigit ? 'M' : 'D';
+                matchesDiffersSequence.push(outcome);
+                if (matchesDiffersSequence.length > 10) {
+                    matchesDiffersSequence.shift();
+                }
+                const matchesCount = matchesDiffersSequence.filter(d => d === 'M').length;
+                const differsCount = matchesDiffersSequence.filter(d => d === 'D').length;
+                const total = matchesDiffersSequence.length;
+
+                matchesPercentSpan.textContent = total > 0 ? ((matchesCount / total) * 100).toFixed(2) : '0.00';
+                differsPercentSpan.textContent = total > 0 ? ((differsCount / total) * 100).toFixed(2) : '0.00';
+
+                if (matchesDiffersStreak.type === outcome) {
+                    matchesDiffersStreak.count++;
+                } else {
+                    matchesDiffersStreak.count = 1;
+                    matchesDiffersStreak.type = outcome;
+                }
+                matchesDiffersStreakSpan.textContent = matchesDiffersStreak.count;
+                matchesDiffersTypeSpan.textContent = matchesDiffersStreak.type === 'M' ? 'Match' : 'Differ';
+                document.querySelector('.matches-differs-container .matches').classList.toggle('active', outcome === 'M');
+                document.querySelector('.matches-differs-container .differs').classList.toggle('active', outcome === 'D');
+
+                matchesDiffersSequenceDiv.innerHTML = matchesDiffersSequence.map(o =>
+                    `<div class="mini-digit-box ${o === 'M' ? 'matches-win' : 'differs-win'}">${o}</div>`
+                ).join('');
+            }
+
+            async function startAnalysis() {
+                const marketSymbol = assetSelect.value;
+                const sampleSize = parseInt(sampleSizeSlider.value, 10);
+
+                if (liveDataWs) {
+                    liveDataWs.close();
+                }
+
+                digitCounts = Array(10).fill(0);
+                liveTickHistory = [];
+                overUnderSequence = [];
+                matchesDiffersSequence = [];
+                matchesTargetDigit = -1;
+                updateDigitProbabilities();
+                updateOverUnderAnalysis(-1);
+                updateMatchesDiffersAnalysis(-1);
+                livePriceDisplay.textContent = '--';
+
+                statusTag.classList.remove('not-running', 'running', 'error');
+                statusTag.classList.add('connecting');
+                statusTag.textContent = 'Connecting...';
+                runButton.disabled = true;
+                runBtnText.textContent = 'Starting...';
+
+                try {
+                    liveDataWs = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                    liveDataWs.onopen = () => {
+                        liveDataWs.send(JSON.stringify({
+                            "ticks": marketSymbol,
+                            "subscribe": 1
+                        }));
+                    };
+
+                    liveDataWs.onmessage = (msg) => {
+                        const data = JSON.parse(msg.data);
+                        if (data.msg_type === 'tick') {
+                            const livePrice = data.tick.quote;
+                            const lastDigit = parseInt(livePrice.toString().slice(-1), 10);
+
+                            livePriceDisplay.textContent = parseFloat(livePrice).toFixed(2);
+
+                            if (!isNaN(lastDigit)) {
+                                if (liveTickHistory.length >= sampleSize) {
+                                    const oldDigit = liveTickHistory.shift();
+                                    digitCounts[oldDigit]--;
+                                }
+                                liveTickHistory.push(lastDigit);
+                                digitCounts[lastDigit]++;
+                                updateDigitProbabilities();
+                                updateOverUnderAnalysis(lastDigit);
+                                updateMatchesDiffersAnalysis(lastDigit);
+                            }
+
+                            statusTag.classList.remove('connecting', 'error');
+                            statusTag.classList.add('running');
+                            statusTag.textContent = 'Running';
+                            runButton.disabled = false;
+                            runBtnText.textContent = 'Run Analysis';
+                        } else if (data.error) {
+                            console.error("API error:", data.error.message);
+                            statusTag.classList.remove('connecting', 'running');
+                            statusTag.classList.add('error');
+                            statusTag.textContent = 'Error';
+                            runButton.disabled = false;
+                            runBtnText.textContent = 'Run Analysis';
+                        }
+                    };
+
+                    liveDataWs.onclose = () => {
+                        statusTag.classList.remove('connecting', 'running');
+                        statusTag.classList.add('not-running');
+                        statusTag.textContent = 'Not Running';
+                        runButton.disabled = false;
+                        runBtnText.textContent = 'Run Analysis';
+                    };
+
+                    liveDataWs.onerror = (error) => {
+                        console.error("WebSocket error:", error);
+                        statusTag.classList.remove('connecting', 'running');
+                        statusTag.classList.add('error');
+                        statusTag.textContent = 'Error';
+                        runButton.disabled = false;
+                        runBtnText.textContent = 'Run Analysis';
+                    };
+                } catch (error) {
+                    console.error('Failed to connect:', error);
+                    statusTag.classList.remove('connecting', 'running');
+                    statusTag.classList.add('error');
+                    statusTag.textContent = 'Error';
+                    runButton.disabled = false;
+                    runBtnText.textContent = 'Run Analysis';
+                }
+            }
+
+            runButton.addEventListener('click', startAnalysis);
+            assetSelect.addEventListener('change', startAnalysis);
+            sampleSizeSlider.addEventListener('input', () => {
+                const newSampleSize = parseInt(sampleSizeSlider.value, 10);
+                sampleSizeValueSpan.textContent = newSampleSize;
+                if (liveTickHistory.length > newSampleSize) {
+                    liveTickHistory = liveTickHistory.slice(-newSampleSize);
+                    digitCounts = Array(10).fill(0);
+                    liveTickHistory.forEach(digit => {
+                        digitCounts[digit]++;
+                    });
+                    updateDigitProbabilities();
+                    updateOverUnderAnalysis(liveTickHistory[liveTickHistory.length - 1] || -1);
+                    updateMatchesDiffersAnalysis(liveTickHistory[liveTickHistory.length - 1] || -1);
+                }
+            });
+
+            generateDigitCircles();
+            startAnalysis();
+        });
+    </script>
+</body>
+</html>

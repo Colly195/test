@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copy Trader - RoyalTraders</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #2c3e50;
+            --text-secondary: #6c757d;
+            --accent-green: #27ae60;
+            --accent-red: #e74c3c;
+            --accent-blue: #3498db;
+            --border-color: #dee2e6;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --card-radius: 12px;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #adb5bd;
+            --border-color: #495057;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: hidden;
+        }
+        .hidden { display: none !important; }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .card {
+            background: var(--bg-primary);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .section { margin-bottom: 1.5rem; }
+        .section-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; }
+        .page-heading { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .page-subheading { font-size: 1rem; color: var(--text-secondary); margin-bottom: 1rem; }
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .logo { width: 20px; height: 20px; }
+        .logo-text { font-weight: 700; font-size: 1.1rem; }
+        .header-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .main-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .nav-links-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            max-width: 100%;
+            overflow-x: auto;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.8rem;
+            text-decoration: none;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .nav-link i { margin-right: 0.4rem; font-size: 0.9rem; transition: color 0.3s ease; }
+        .nav-right-actions { display: flex; align-items: center; gap: 0.5rem; }
+        .status-tag {
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .status-tag.running { background: var(--accent-green); color: white; }
+        .status-tag.not-running { background: #ffc107; color: #212529; }
+        [data-theme="dark"] .status-tag.not-running {
+            background: #d39e00;
+            color: #fff;
+        }
+        .btn {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        .btn-run {
+            background: var(--accent-green);
+            color: white;
+            padding: 0.5rem 1rem;
+        }
+        .btn-run:hover { background: #219a52; }
+        .btn-secondary { background: var(--accent-blue); color: white; }
+        .btn-secondary:hover { background: #2980b9; }
+        .btn-sm { padding: 0.2rem 0.4rem; font-size: 0.8rem; }
+        .btn-action {
+            margin-right: 0.2rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        .btn-action:hover {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+        .main-content {
+            padding: 1rem;
+            max-width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+        .announcement-card {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 0.75rem;
+            border-radius: var(--card-radius);
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+        [data-theme="dark"] .announcement-card {
+            background: #4a3f1a;
+            border-color: #7a6b2f;
+            color: #ffda6a;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
+        }
+        .close-btn:hover { color: var(--accent-blue); }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .data-table th, .data-table td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .data-table th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+        }
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .positive { color: var(--accent-green); font-weight: 600; }
+        .negative { color: var(--accent-red); font-weight: 600; }
+        .warning-bar {
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .main-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            transition: background-color 0.3s ease;
+        }
+        .footer-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
+        }
+        .footer-btn:hover { color: var(--accent-blue); }
+        .loading { opacity: 0.6; pointer-events: none; }
+        .hamburger {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            background: none;
+            border: none;
+            padding: 0;
+            transition: color 0.3s ease;
+        }
+        @media (max-width: 768px) {
+            .nav-links-container {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                background: var(--bg-primary);
+                position: absolute;
+                top: 100%;
+                left: 0;
+                padding: 1rem;
+                z-index: 10;
+                border-top: 1px solid var(--border-color);
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            .nav-links-container.active {
+                display: flex;
+                transform: translateY(0);
+                opacity: 1;
+            }
+            .hamburger { display: block; }
+            .top-header, .main-content, .main-footer { padding: 0.5rem; }
+            .section-title, .page-heading { font-size: 1.1rem; }
+            .data-table { font-size: 0.8rem; }
+            .data-table th, .data-table td { padding: 0.4rem; }
+            .btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+            .btn-run { padding: 0.4rem 0.8rem; }
+        }
+        @media (max-width: 480px) {
+            .logo-text { font-size: 1rem; }
+            .btn-sm { padding: 0.15rem 0.3rem; font-size: 0.75rem; }
+        }
+        [data-theme="dark"] .hamburger i,
+        [data-theme="dark"] .footer-btn i,
+        [data-theme="dark"] .nav-link i,
+        [data-theme="dark"] .close-btn i {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <header class="top-header">
+        <div class="header-left">
+            <svg class="logo" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7V17L12 22L22 17V7L12 2ZM12 4.144L20 8.5L12 12.856L4 8.5L12 4.144ZM4 10.5L11 14.5V20.856L4 16.5V10.5ZM13 14.5L20 10.5V16.5L13 20.856V14.5Z"/>
+            </svg>
+            <span class="logo-text">RoyalTraders</span>
+        </div>
+        <div class="header-right">
+            <div id="user-display" class="user-info-container hidden" style="display: flex; align-items: center; gap: 0.5rem;">
+                <div id="user-initials" style="background-color: #5c6bc0; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold;"></div>
+                <img id="country-flag" src="" alt="Country Flag" style="width: 25px; height: auto;">
+                <span id="user-balance" style="font-weight: bold;"></span>
+                <button id="logout-btn" class="btn btn-secondary btn-sm">Log Out</button>
+            </div>
+            <div id="auth-links" class="auth-links-container">
+                <button id="deriv-auth-btn" class="btn btn-secondary">Log in / Sign up with Deriv</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <button class="hamburger" aria-label="Toggle Menu"><i class="fa-solid fa-bars"></i></button>
+        <div class="nav-links-container">
+            <a href="index.html" class="nav-link" aria-label="Dashboard" data-page="index.html"><i class="fa-solid fa-home"></i><span>Dashboard</span></a>
+            <a href="bot-builder.html" class="nav-link" aria-label="Bot Builder" data-page="bot-builder.html"><i class="fa-solid fa-hammer"></i><span>Bot Builder</span></a>
+            <a href="analysis-tool.html" class="nav-link" aria-label="Analysis Tool" data-page="analysis-tool.html"><i class="fa-solid fa-chart-line"></i><span>Analysis Tool</span></a>
+            <a href="batch-trader.html" class="nav-link" aria-label="Batch Trader" data-page="batch-trader.html"><i class="fa-solid fa-layer-group"></i><span>Batch Trader</span></a>
+            <a href="market-analyzer.html" class="nav-link" aria-label="Market Analyzer" data-page="market-analyzer.html"><i class="fa-solid fa-chart-area"></i><span>Market Analyzer</span></a>
+            <a href="frequency-analysis.html" class="nav-link" aria-label="Frequency Analysis" data-page="frequency-analysis.html"><i class="fa-solid fa-calculator"></i><span>Frequency Analysis</span></a>
+            <a href="digit-tool.html" class="nav-link" aria-label="Digit Tool" data-page="digit-tool.html"><i class="fa-solid fa-fingerprint"></i><span>Digit Tool</span></a>
+            <a href="free-bots.html" class="nav-link" aria-label="Free Bots" data-page="free-bots.html"><i class="fa-solid fa-robot"></i><span>Free Bots</span></a>
+            <a href="copy-trader.html" class="nav-link active" aria-label="Copy Trader" data-page="copy-trader.html"><i class="fa-solid fa-copy"></i><span>Copy Trader</span></a>
+            <a href="charts.html" class="nav-link" aria-label="Charts" data-page="charts.html"><i class="fa-solid fa-chart-bar"></i><span>Charts</span></a>
+        </div>
+        <div class="nav-right-actions">
+            <span id="statusTag" class="status-tag not-running">Not Running</span>
+            <button id="runButton" class="btn btn-run"><i class="fa-solid fa-play"></i><span id="runBtnText">Run</span></button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div id="announcement" class="announcement-card">
+            <p><strong>🚨 New Feature!</strong> The new Copy Trader is now live. Follow top traders effortlessly!</p>
+            <button class="close-btn" aria-label="Dismiss announcement"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <section class="section">
+            <h2 class="page-heading">Copy Trader</h2>
+            <p class="page-subheading">Follow and automatically copy the strategies of successful traders in real-time.</p>
+            <div class="card">
+                <h2 class="section-title">Trader Leaderboard</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Trader</th>
+                                <th>ROI %</th>
+                                <th>Followers</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trader-tbody">
+                            <tr>
+                                <td>Alpha_Profits</td>
+                                <td id="roiAlpha_Profits" class="positive">+125%</td>
+                                <td id="followersAlpha_Profits">5,400</td>
+                                <td>
+                                    <button class="btn btn-sm btn-action" data-action="copy" data-trader="Alpha_Profits">Copy</button>
+                                    <button class="btn btn-sm btn-action" data-action="view" data-trader="Alpha_Profits"><i class="fa-solid fa-eye"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Market_Whiz</td>
+                                <td id="roiMarket_Whiz" class="positive">+98%</td>
+                                <td id="followersMarket_Whiz">3,120</td>
+                                <td>
+                                    <button class="btn btn-sm btn-action" data-action="copy" data-trader="Market_Whiz">Copy</button>
+                                    <button class="btn btn-sm btn-action" data-action="view" data-trader="Market_Whiz"><i class="fa-solid fa-eye"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>SafeTrader_X</td>
+                                <td id="roiSafeTrader_X" class="positive">+75%</td>
+                                <td id="followersSafeTrader_X">8,910</td>
+                                <td>
+                                    <button class="btn btn-sm btn-action" data-action="copy" data-trader="SafeTrader_X">Copy</button>
+                                    <button class="btn btn-sm btn-action" data-action="view" data-trader="SafeTrader_X"><i class="fa-solid fa-eye"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <h2 class="section-title">How Copy Trading Works</h2>
+                <p>1. <strong>Choose a Trader:</strong> Browse the leaderboard and select a trader based on their performance and risk profile.</p>
+                <p>2. <strong>Set Your Investment:</strong> Decide how much of your capital you want to allocate to copy their trades.</p>
+                <p>3. <strong>Start Copying:</strong> Your account will automatically replicate their trades proportionally. You can stop copying at any time.</p>
+            </div>
+        </section>
+    </main>
+
+    <div class="warning-bar">
+        <strong>Disclaimer:</strong> Trading involves risk. All analysis tools and bots are for informational purposes only.
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-left">
+            <span id="dateTime"></span>
+        </div>
+        <div class="footer-right">
+            <button id="settingsToggle" class="footer-btn" aria-label="Settings"><i class="fa-solid fa-cog"></i></button>
+            <button id="darkModeToggle" class="footer-btn" aria-label="Toggle dark/light mode"><i class="fa-solid fa-moon"></i></button>
+            <div class="language-select" style="display: flex; align-items: center;">
+                <button class="footer-btn" aria-label="Select language"><i class="fa-solid fa-globe"></i></button>
+                <i class="fa-solid fa-caret-down" style="margin-left: 0.25rem;"></i>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        // Deriv Auth Module
+        document.addEventListener('DOMContentLoaded', () => {
+            const APP_ID = '99626';
+            const derivAuthBtn = document.getElementById('deriv-auth-btn');
+            const userDisplay = document.getElementById('user-display');
+            const authLinks = document.getElementById('auth-links');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userInitials = document.getElementById('user-initials');
+            const userBalance = document.getElementById('user-balance');
+
+            if (derivAuthBtn) {
+                derivAuthBtn.addEventListener('click', () => {
+                    const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${APP_ID}&l=en&brand=deriv`;
+                    window.location.href = oauthUrl;
+                });
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    sessionStorage.removeItem('deriv_token');
+                    updateUIForLoginState(false);
+                    window.location.reload();
+                });
+            }
+
+            function updateUIForLoginState(isLoggedIn) {
+                if (isLoggedIn) {
+                    authLinks.classList.add('hidden');
+                    userDisplay.classList.remove('hidden');
+                    userInitials.textContent = 'RT';
+                    userBalance.textContent = '$1,250.00';
+                } else {
+                    authLinks.classList.remove('hidden');
+                    userDisplay.classList.add('hidden');
+                }
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            if (token) {
+                sessionStorage.setItem('deriv_token', token);
+                updateUIForLoginState(true);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                const storedToken = sessionStorage.getItem('deriv_token');
+                updateUIForLoginState(!!storedToken);
+            }
+
+            // Hamburger Menu Toggle
+            const hamburger = document.querySelector('.hamburger');
+            const navLinks = document.querySelector('.nav-links-container');
+            hamburger.addEventListener('click', () => {
+                navLinks.classList.toggle('active');
+                hamburger.querySelector('i').classList.toggle('fa-bars');
+                hamburger.querySelector('i').classList.toggle('fa-times');
+            });
+        });
+    </script>
+
+    <script>
+        // Enhanced Functionality Script
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set active nav link
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.page === currentPage);
+            });
+
+            // Close menu on link click
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    const navLinks = document.querySelector('.nav-links-container');
+                    const hamburger = document.querySelector('.hamburger');
+                    navLinks.classList.remove('active');
+                    hamburger.querySelector('i').classList.add('fa-bars');
+                    hamburger.querySelector('i').classList.remove('fa-times');
+                });
+            });
+
+            // Close menu on outside click
+            document.addEventListener('click', (e) => {
+                const navLinks = document.querySelector('.nav-links-container');
+                const hamburger = document.querySelector('.hamburger');
+                if (!navLinks.contains(e.target) && !hamburger.contains(e.target) && navLinks.classList.contains('active')) {
+                    navLinks.classList.remove('active');
+                    hamburger.querySelector('i').classList.add('fa-bars');
+                    hamburger.querySelector('i').classList.remove('fa-times');
+                }
+            });
+
+            // Update date/time
+            function updateDateTime() {
+                const now = new Date();
+                document.getElementById('dateTime').textContent = now.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' });
+            }
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+
+            // Announcement close
+            const announcement = document.getElementById('announcement');
+            const closeBtn = announcement.querySelector('.close-btn');
+            if (sessionStorage.getItem('announcementClosed')) {
+                announcement.classList.add('hidden');
+            }
+            closeBtn.addEventListener('click', () => {
+                announcement.classList.add('hidden');
+                sessionStorage.setItem('announcementClosed', 'true');
+            });
+
+            // Dark mode toggle
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            function applyTheme(theme) {
+                document.body.setAttribute('data-theme', theme);
+                darkModeToggle.querySelector('i').className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+                localStorage.setItem('theme', theme);
+            }
+            const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(savedTheme);
+            darkModeToggle.addEventListener('click', () => {
+                const currentTheme = document.body.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                applyTheme(newTheme);
+            });
+
+            // Settings toggle
+            document.getElementById('settingsToggle').addEventListener('click', () => {
+                alert('Settings modal would open here.');
+            });
+
+            // Run button
+            document.getElementById('runButton').addEventListener('click', () => {
+                const statusTag = document.getElementById('statusTag');
+                const runText = document.getElementById('runBtnText');
+                if (statusTag.classList.contains('not-running')) {
+                    statusTag.classList.remove('not-running');
+                    statusTag.classList.add('running');
+                    statusTag.textContent = 'Running';
+                    runText.textContent = 'Stop';
+                    document.getElementById('runButton').innerHTML = '<i class="fa-solid fa-stop"></i>Stop';
+                } else {
+                    statusTag.classList.remove('running');
+                    statusTag.classList.add('not-running');
+                    statusTag.textContent = 'Not Running';
+                    runText.textContent = 'Run';
+                    document.getElementById('runButton').innerHTML = '<i class="fa-solid fa-play"></i>Run';
+                }
+            });
+
+            // Trader actions
+            document.querySelectorAll('#trader-tbody .btn-action').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const action = btn.dataset.action;
+                    const trader = btn.dataset.trader;
+                    switch (action) {
+                        case 'copy': alert(`Starting to copy trader: ${trader}`); break;
+                        case 'view': alert(`Viewing trader profile: ${trader}`); break;
+                    }
+                });
+            });
+
+            // WebSocket for simulated trader data updates
+            const APP_ID = '99626';
+            let ws = null;
+            let reconnectAttempts = 0;
+            const maxReconnect = 5;
+            const traders = ['Alpha_Profits', 'Market_Whiz', 'SafeTrader_X'];
+
+            function connectWebSocket() {
+                ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                document.body.classList.add('loading');
+
+                ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    reconnectAttempts = 0;
+                    document.body.classList.remove('loading');
+                    traders.forEach(trader => ws.send(JSON.stringify({ ticks: trader, subscribe: 1 })));
+                };
+
+                ws.onmessage = (msg) => {
+                    const data = JSON.parse(msg.data);
+                    if (data.msg_type === 'tick') {
+                        const trader = data.tick.symbol;
+                        if (traders.includes(trader)) {
+                            const roi = (Math.random() * 50 + 50).toFixed(1);
+                            const followers = Math.floor(Math.random() * 1000 + 1000);
+                            const roiEl = document.getElementById(`roi${trader}`);
+                            const followersEl = document.getElementById(`followers${trader}`);
+                            roiEl.textContent = `+${roi}%`;
+                            roiEl.className = 'positive';
+                            followersEl.textContent = followers.toLocaleString();
+                        }
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log('WebSocket closed');
+                    document.body.classList.add('loading');
+                    if (reconnectAttempts < maxReconnect) {
+                        setTimeout(() => {
+                            reconnectAttempts++;
+                            connectWebSocket();
+                        }, 3000 * reconnectAttempts);
+                    }
+                };
+
+                ws.onerror = (err) => console.error('WebSocket error:', err);
+            }
+
+            connectWebSocket();
+        });
+    </script>
+</body>
+</html>
