@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Tool - RoyalTraders</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #2c3e50;
+            --text-secondary: #6c757d;
+            --accent-green: #27ae60;
+            --accent-red: #e74c3c;
+            --accent-blue: #3498db;
+            --border-color: #dee2e6;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --card-radius: 12px;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #adb5bd;
+            --border-color: #495057;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+        .hidden { display: none !important; }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .card {
+            background: var(--bg-primary);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+        }
+        .section { margin-bottom: 1.5rem; }
+        .section-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; }
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .logo { width: 20px; height: 20px; }
+        .logo-text { font-weight: 700; font-size: 1.1rem; }
+        .header-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .main-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+        .nav-links-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.8rem;
+            text-decoration: none;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .nav-link i { margin-right: 0.4rem; font-size: 0.9rem; }
+        .nav-right-actions { display: flex; align-items: center; gap: 0.5rem; }
+        .status-tag {
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-tag.running { background: var(--accent-green); color: white; }
+        .status-tag.not-running { background: #ffc107; color: #212529; }
+        .btn {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn-run {
+            background: var(--accent-green);
+            color: white;
+            padding: 0.5rem 1rem;
+        }
+        .btn-run:hover { background: #219a52; }
+        .btn-secondary { background: var(--accent-blue); color: white; }
+        .btn-secondary:hover { background: #2980b9; }
+        .btn-sm { padding: 0.2rem 0.4rem; font-size: 0.8rem; }
+        .main-content {
+            padding: 1rem;
+            max-width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+            min-height: calc(100vh - 120px);
+        }
+        .warning-bar {
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .main-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+        .footer-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .footer-btn:hover { color: var(--accent-blue); }
+        .hamburger {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            background: none;
+            border: none;
+        }
+        /* Analysis Tool Specific Styles */
+        .analysis-page-container {
+            display: flex;
+            gap: 1rem;
+            height: 100%;
+        }
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            margin-bottom: 1.5rem;
+        }
+        .sidebar-header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem;
+        }
+        .sidebar-header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .menu-item {
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        .menu-item:hover, .menu-item.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .setting-group {
+            margin-bottom: 1rem;
+        }
+        .setting-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px var(--accent-blue);
+        }
+        .disclaimer-btn {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .disclaimer-btn:hover {
+            background: #2980b9;
+        }
+        .main-analysis-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        .current-price-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+        }
+        .current-price-label {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .current-price-value {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+        .digit-stream-card, .digit-distribution-card {
+            margin-top: 1rem;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .blue-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+        }
+        .card-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .digit-stream {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+        }
+        .digit {
+            padding: 0.3rem 0.6rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        @media (max-width: 768px) {
+            .nav-links-container {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                background: var(--bg-primary);
+                position: absolute;
+                top: 100%;
+                left: 0;
+                padding: 1rem;
+                z-index: 10;
+                border-top: 1px solid var(--border-color);
+            }
+            .nav-links-container.active { display: flex; }
+            .hamburger { display: block; }
+            .top-header, .main-content, .main-footer { padding: 0.5rem; }
+            .analysis-page-container { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); }
+            .main-analysis-content { padding: 0.5rem; }
+            .form-control, .disclaimer-btn { font-size: 0.8rem; }
+            .digit { font-size: 0.8rem; padding: 0.2rem 0.4rem; }
+            .chart-container { height: 200px; }
+            .btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+            .btn-run { padding: 0.4rem 0.8rem; }
+        }
+        @media (max-width: 480px) {
+            .logo-text { font-size: 1rem; }
+            .btn-sm { padding: 0.15rem 0.3rem; font-size: 0.75rem; }
+            .current-price-label, .current-price-value { font-size: 0.9rem; }
+            .card-header h3 { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <header class="top-header">
+        <div class="header-left">
+            <svg class="logo" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7V17L12 22L22 17V7L12 2ZM12 4.144L20 8.5L12 12.856L4 8.5L12 4.144ZM4 10.5L11 14.5V20.856L4 16.5V10.5ZM13 14.5L20 10.5V16.5L13 20.856V14.5Z"/>
+            </svg>
+            <span class="logo-text">RoyalTraders</span>
+        </div>
+        <div class="header-right">
+            <div id="user-display" class="user-info-container hidden" style="display: flex; align-items: center; gap: 0.5rem;">
+                <div id="user-initials" style="background-color: #5c6bc0; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold;"></div>
+                <img id="country-flag" src="" alt="Country Flag" style="width: 25px; height: auto;">
+                <span id="user-balance" style="font-weight: bold;"></span>
+                <button id="logout-btn" class="btn btn-secondary btn-sm">Log Out</button>
+            </div>
+            <div id="auth-links" class="auth-links-container">
+                <button id="deriv-auth-btn" class="btn btn-secondary">Log in / Sign up with Deriv</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <button class="hamburger" aria-label="Toggle Menu"><i class="fa-solid fa-bars"></i></button>
+        <div class="nav-links-container">
+            <a href="index.html" class="nav-link" aria-label="Dashboard" data-page="index.html"><i class="fa-solid fa-home"></i><span>Dashboard</span></a>
+            <a href="bot-builder.html" class="nav-link" aria-label="Bot Builder" data-page="bot-builder.html"><i class="fa-solid fa-hammer"></i><span>Bot Builder</span></a>
+            <a href="analysis-tool.html" class="nav-link active" aria-label="Analysis Tool" data-page="analysis-tool.html"><i class="fa-solid fa-chart-line"></i><span>Analysis Tool</span></a>
+            <a href="batch-trader.html" class="nav-link" aria-label="Batch Trader" data-page="batch-trader.html"><i class="fa-solid fa-layer-group"></i><span>Batch Trader</span></a>
+            <a href="market-analyzer.html" class="nav-link" aria-label="Market Analyzer" data-page="market-analyzer.html"><i class="fa-solid fa-chart-area"></i><span>Market Analyzer</span></a>
+            <a href="frequency-analysis.html" class="nav-link" aria-label="Frequency Analysis" data-page="frequency-analysis.html"><i class="fa-solid fa-calculator"></i><span>Frequency Analysis</span></a>
+            <a href="digit-tool.html" class="nav-link" aria-label="Digit Tool" data-page="digit-tool.html"><i class="fa-solid fa-fingerprint"></i><span>Digit Tool</span></a>
+            <a href="free-bots.html" class="nav-link" aria-label="Free Bots" data-page="free-bots.html"><i class="fa-solid fa-robot"></i><span>Free Bots</span></a>
+            <a href="copy-trader.html" class="nav-link" aria-label="Copy Trader" data-page="copy-trader.html"><i class="fa-solid fa-copy"></i><span>Copy Trader</span></a>
+            <a href="charts.html" class="nav-link" aria-label="Charts" data-page="charts.html"><i class="fa-solid fa-chart-bar"></i><span>Charts</span></a>
+        </div>
+        <div class="nav-right-actions">
+            <span id="statusTag" class="status-tag not-running">Not Running</span>
+            <button id="runButton" class="btn btn-run"><i class="fa-solid fa-play"></i><span id="runBtnText">Run</span></button>
+        </div>
+    </nav>
+
+    <main class="main-content analysis-tool-main">
+        <div class="analysis-page-container">
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>ANALYSIS</h2>
+                    <p>Trading Pattern Recognition</p>
+                </div>
+                <div class="sidebar-menu">
+                    <a href="#" class="menu-item active" data-type="even_odd">Even/Odd</a>
+                    <a href="#" class="menu-item" data-type="over_under">Over/Under</a>
+                    <a href="#" class="menu-item" data-type="match_differ">Match/Differ</a>
+                    <a href="#" class="menu-item" data-type="rise_fall">Rise/Fall</a>
+                </div>
+                <div class="sidebar-settings">
+                    <div class="setting-group">
+                        <label for="volatilityIndex">Volatility Index</label>
+                        <select id="volatilityIndex" class="form-control">
+                            <option value="R_10">VOLATILITY INDEX 10</option>
+                            <option value="R_25">VOLATILITY INDEX 25</option>
+                            <option value="R_50">VOLATILITY INDEX 50</option>
+                            <option value="R_75">VOLATILITY INDEX 75</option>
+                            <option value="R_100" selected>VOLATILITY INDEX 100</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="numDigits">Number of Digits</label>
+                        <input type="number" id="numDigits" class="form-control" value="60" min="10" max="500">
+                    </div>
+                </div>
+                <div class="disclaimer-btn-container">
+                    <button class="disclaimer-btn">Risk Disclaimer</button>
+                </div>
+            </aside>
+            <div class="main-analysis-content">
+                <div class="current-price-card card">
+                    <div class="current-price-label">CURRENT PRICE</div>
+                    <div class="current-price-value">Latest Price: <span id="latestPrice">5926.877</span></div>
+                </div>
+                <div class="digit-stream-card card mt-2">
+                    <div class="card-header">
+                        <div class="blue-dot"></div>
+                        <h3>Digits</h3>
+                    </div>
+                    <div class="digit-stream" id="digitStream"></div>
+                </div>
+                <div class="digit-distribution-card card mt-2">
+                    <div class="card-header">
+                        <div class="blue-dot"></div>
+                        <h3>Digit Distribution</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="digitDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="warning-bar">
+        <strong>Disclaimer:</strong> Trading involves risk. All analysis tools and bots are for informational purposes only.
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-left">
+            <span id="dateTime"></span>
+        </div>
+        <div class="footer-right">
+            <button id="settingsToggle" class="footer-btn" aria-label="Settings"><i class="fa-solid fa-cog"></i></button>
+            <button id="darkModeToggle" class="footer-btn" aria-label="Toggle dark/light mode"><i class="fa-solid fa-moon"></i></button>
+            <div class="language-select" style="display: flex; align-items: center;">
+                <button class="footer-btn" aria-label="Select language"><i class="fa-solid fa-globe"></i></button>
+                <i class="fa-solid fa-caret-down" style="margin-left: 0.25rem; color: var(--text-secondary);"></i>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        // Deriv Authentication
+        document.addEventListener('DOMContentLoaded', () => {
+            const APP_ID = '99973';
+            const derivAuthBtn = document.getElementById('deriv-auth-btn');
+            const userDisplay = document.getElementById('user-display');
+            const authLinks = document.getElementById('auth-links');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userInitials = document.getElementById('user-initials');
+            const userBalance = document.getElementById('user-balance');
+
+            if (derivAuthBtn) {
+                derivAuthBtn.addEventListener('click', () => {
+                    const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${APP_ID}&l=en&brand=deriv`;
+                    window.location.href = oauthUrl;
+                });
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    sessionStorage.removeItem('deriv_token');
+                    updateUIForLoginState(false);
+                    window.location.reload();
+                });
+            }
+
+            function updateUIForLoginState(isLoggedIn) {
+                if (isLoggedIn) {
+                    authLinks.classList.add('hidden');
+                    userDisplay.classList.remove('hidden');
+                    userInitials.textContent = 'RT';
+                    userBalance.textContent = '$1,250.00';
+                } else {
+                    authLinks.classList.remove('hidden');
+                    userDisplay.classList.add('hidden');
+                }
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            if (token) {
+                sessionStorage.setItem('deriv_token', token);
+                updateUIForLoginState(true);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                const storedToken = sessionStorage.getItem('deriv_token');
+                updateUIForLoginState(!!storedToken);
+            }
+
+            // Hamburger Menu
+            const hamburger = document.querySelector('.hamburger');
+            const navLinks = document.querySelector('.nav-links-container');
+            if (hamburger) {
+                hamburger.addEventListener('click', () => {
+                    navLinks.classList.toggle('active');
+                    const icon = hamburger.querySelector('i');
+                    icon.classList.toggle('fa-bars');
+                    icon.classList.toggle('fa-times');
+                });
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Shared Features
+            const currentPage = window.location.pathname.split('/').pop() || 'analysis-tool.html';
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.page === currentPage);
+            });
+
+            function updateDateTime() {
+                const now = new Date();
+                document.getElementById('dateTime').textContent = now.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' });
+            }
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            darkModeToggle.addEventListener('click', () => {
+                const body = document.body;
+                const currentTheme = body.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                body.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                darkModeToggle.querySelector('i').className = newTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+                updateChart(); // Update chart colors for theme
+            });
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+            darkModeToggle.querySelector('i').className = savedTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+
+            document.getElementById('settingsToggle').addEventListener('click', () => {
+                alert('Settings modal would open here.');
+            });
+
+            document.querySelector('.disclaimer-btn').addEventListener('click', () => {
+                alert('Trading involves risk. Use this tool for informational purposes only.');
+            });
+
+            // Analysis Tool Functionality
+            const volatilitySelect = document.getElementById('volatilityIndex');
+            const numDigitsInput = document.getElementById('numDigits');
+            const latestPrice = document.getElementById('latestPrice');
+            const digitStream = document.getElementById('digitStream');
+            let chart = null;
+            let digits = [];
+            let currentSymbol = volatilitySelect.value;
+            let analysisType = 'even_odd';
+
+            // Initialize Chart
+            function initializeChart() {
+                const ctx = document.getElementById('digitDistributionChart').getContext('2d');
+                chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Digit Distribution',
+                            data: [],
+                            backgroundColor: 'var(--accent-blue)',
+                            borderColor: 'var(--accent-blue)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: 'Frequency' } },
+                            x: { title: { display: true, text: 'Category' } }
+                        }
+                    }
+                });
+            }
+
+            function updateChart() {
+                const isDark = document.body.getAttribute('data-theme') === 'dark';
+                const color = isDark ? '#4fc3f7' : 'var(--accent-blue)';
+                let labels = [];
+                let data = [];
+
+                if (analysisType === 'even_odd') {
+                    const evenCount = digits.filter(d => d % 2 === 0).length;
+                    labels = ['Even', 'Odd'];
+                    data = [evenCount, digits.length - evenCount];
+                } else if (analysisType === 'over_under') {
+                    const overCount = digits.filter(d => d >= 5).length;
+                    labels = ['Over 5', 'Under 5'];
+                    data = [overCount, digits.length - overCount];
+                } else if (analysisType === 'match_differ') {
+                    const matchCount = digits.filter(d => d === digits[0]).length;
+                    labels = ['Match', 'Differ'];
+                    data = [matchCount, digits.length - matchCount];
+                } else if (analysisType === 'rise_fall') {
+                    const riseCount = digits.filter((d, i) => i > 0 && d > digits[i-1]).length;
+                    labels = ['Rise', 'Fall/Equal'];
+                    data = [riseCount, digits.length - riseCount];
+                }
+
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = data;
+                chart.data.datasets[0].backgroundColor = color;
+                chart.data.datasets[0].borderColor = color;
+                chart.update();
+            }
+
+            function updateDigitStream() {
+                digitStream.innerHTML = digits.slice(0, parseInt(numDigitsInput.value)).map(d => `<span class="digit">${d}</span>`).join('');
+            }
+
+            // WebSocket for Deriv
+            const APP_ID = '99973';
+            let ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ ticks: currentSymbol, subscribe: 1 }));
+            };
+            ws.onmessage = (msg) => {
+                const data = JSON.parse(msg.data);
+                if (data.msg_type === 'tick' && data.tick) {
+                    latestPrice.textContent = data.tick.quote.toFixed(3);
+                    const lastDigit = parseInt(data.tick.quote.toString().slice(-1));
+                    digits.unshift(lastDigit);
+                    if (digits.length > parseInt(numDigitsInput.value)) {
+                        digits.pop();
+                    }
+                    updateDigitStream();
+                    updateChart();
+                }
+            };
+            ws.onclose = () => {
+                ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ ticks: currentSymbol, subscribe: 1 }));
+                };
+            };
+
+            // Sidebar Menu
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    analysisType = item.dataset.type;
+                    updateChart();
+                });
+            });
+
+            // Volatility Index Change
+            volatilitySelect.addEventListener('change', () => {
+                currentSymbol = volatilitySelect.value;
+                ws.send(JSON.stringify({ forget: currentSymbol }));
+                ws.send(JSON.stringify({ ticks: currentSymbol, subscribe: 1 }));
+                digits = [];
+                updateDigitStream();
+                updateChart();
+            });
+
+            // Number of Digits Change
+            numDigitsInput.addEventListener('input', () => {
+                if (numDigitsInput.value < 10) numDigitsInput.value = 10;
+                if (numDigitsInput.value > 500) numDigitsInput.value = 500;
+                updateDigitStream();
+                updateChart();
+            });
+
+            // Run Button (Placeholder for analysis execution)
+            document.getElementById('runButton').addEventListener('click', () => {
+                const statusTag = document.getElementById('statusTag');
+                const runText = document.getElementById('runBtnText');
+                if (statusTag.classList.contains('not-running')) {
+                    statusTag.classList.remove('not-running');
+                    statusTag.classList.add('running');
+                    statusTag.textContent = 'Running';
+                    runText.textContent = 'Stop';
+                    document.getElementById('runButton').innerHTML = '<i class="fa-solid fa-stop"></i>Stop';
+                } else {
+                    statusTag.classList.remove('running');
+                    statusTag.classList.add('not-running');
+                    statusTag.textContent = 'Not Running';
+                    runText.textContent = 'Run';
+                    document.getElementById('runButton').innerHTML = '<i class="fa-solid fa-play"></i>Run';
+                }
+            });
+
+            // Initialize
+            initializeChart();
+            updateDigitStream();
+            updateChart();
+        });
+    </script>
+</body>
+</html>

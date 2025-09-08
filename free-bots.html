@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Bots - RoyalTraders</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #2c3e50;
+            --text-secondary: #6c757d;
+            --accent-green: #27ae60;
+            --accent-red: #e74c3c;
+            --accent-blue: #3498db;
+            --border-color: #dee2e6;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --card-radius: 12px;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #adb5bd;
+            --border-color: #495057;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            --accent-blue: #4fc3f7;
+            --accent-green: #2ecc71;
+            --accent-red: #ff6b6b;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+        .hidden { display: none !important; }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .card {
+            background: var(--bg-primary);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+            transition: background 0.3s, border 0.3s;
+        }
+        .section { margin-bottom: 1.5rem; }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            border-bottom: 2px solid var(--accent-blue);
+            padding-bottom: 0.25rem;
+        }
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            transition: background 0.3s, border 0.3s;
+        }
+        .logo { width: 20px; height: 20px; }
+        .logo-text { font-weight: 700; font-size: 1.1rem; }
+        .header-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .main-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            transition: background 0.3s, border 0.3s;
+        }
+        .nav-links-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.8rem;
+            text-decoration: none;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .nav-link i { margin-right: 0.4rem; font-size: 0.9rem; }
+        .nav-right-actions { display: flex; align-items: center; gap: 0.5rem; }
+        .status-tag {
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: background 0.3s, color 0.3s;
+        }
+        .status-tag.running { background: var(--accent-green); color: white; }
+        .status-tag.not-running { background: #ffc107; color: #212529; }
+        .status-tag.connecting { background: #3498db; color: white; }
+        .status-tag.error { background: var(--accent-red); color: white; }
+        .status-tag.trade-placed { background: #8e44ad; color: white; }
+        .status-tag.waiting { background: #f39c12; color: white; }
+        .btn {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn-run {
+            background: var(--accent-green);
+            color: white;
+            padding: 0.5rem 1rem;
+        }
+        .btn-run:hover { background: #219a52; }
+        .btn-stop {
+            background: var(--accent-red);
+            color: white;
+            padding: 0.5rem 1rem;
+        }
+        .btn-stop:hover { background: #c0392b; }
+        .btn-secondary { background: var(--accent-blue); color: white; }
+        .btn-secondary:hover { background: #2980b9; }
+        .btn-sm { padding: 0.2rem 0.4rem; font-size: 0.8rem; }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            color: #666;
+        }
+        .main-content {
+            padding: 1rem;
+            max-width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+            min-height: calc(100vh - 120px);
+            transition: background 0.3s;
+        }
+        .warning-bar {
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            transition: background 0.3s, color 0.3s;
+        }
+        .main-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            transition: background 0.3s, border 0.3s;
+        }
+        .footer-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.3s;
+        }
+        .footer-btn:hover { color: var(--accent-blue); }
+        .hamburger {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            background: none;
+            border: none;
+            transition: color 0.3s;
+        }
+        /* Free Bots Specific Styles */
+        .page-heading {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s;
+        }
+        .page-subheading {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            transition: color 0.3s;
+        }
+        .filter-group-top {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .filter-group-top .btn {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            transition: background 0.3s, color 0.3s, border 0.3s;
+        }
+        .filter-group-top .btn.active-filter {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .filter-group-top .btn:hover {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .bot-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s, border 0.3s;
+        }
+        .bot-card:hover {
+            transform: translateY(-5px);
+        }
+        .bot-card h3 {
+            font-size: 1.2rem;
+            margin: 0;
+            color: var(--text-primary);
+            transition: color 0.3s;
+        }
+        .bot-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0.5rem 0;
+            transition: color 0.3s;
+        }
+        .bot-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            transition: color 0.3s;
+        }
+        .bot-stats i {
+            margin-right: 0.3rem;
+        }
+        .bot-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .bot-status {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            transition: color 0.3s;
+        }
+        .mt-1 { margin-top: 1rem; }
+        .mt-2 { margin-top: 2rem; }
+        .button-group {
+            text-align: center;
+        }
+        .test-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            transition: color 0.3s;
+        }
+        .test-mode-toggle input[type="checkbox"] {
+            cursor: pointer;
+        }
+        @media (max-width: 768px) {
+            .nav-links-container {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                background: var(--bg-primary);
+                position: absolute;
+                top: 100%;
+                left: 0;
+                padding: 1rem;
+                z-index: 10;
+                border-top: 1px solid var(--border-color);
+                transition: background 0.3s, border 0.3s;
+            }
+            .nav-links-container.active { display: flex; }
+            .hamburger { display: block; }
+            .top-header, .main-content, .main-footer { padding: 0.5rem; }
+            .page-heading { font-size: 1.25rem; }
+            .page-subheading { font-size: 0.9rem; }
+            .grid-container { grid-template-columns: 1fr; }
+            .bot-card h3 { font-size: 1.1rem; }
+            .bot-description { font-size: 0.85rem; }
+            .bot-stats { font-size: 0.85rem; }
+            .btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+            .btn-run, .btn-stop { padding: 0.4rem 0.8rem; }
+            .filter-group-top { justify-content: center; }
+            .bot-controls { flex-direction: column; align-items: stretch; }
+        }
+        @media (max-width: 480px) {
+            .logo-text { font-size: 1rem; }
+            .btn-sm { padding: 0.15rem 0.3rem; font-size: 0.75rem; }
+            .section-title { font-size: 1.1rem; }
+            .bot-card h3 { font-size: 1rem; }
+            .bot-description { font-size: 0.8rem; }
+            .bot-stats { font-size: 0.8rem; }
+            .bot-status { font-size: 0.75rem; }
+            .test-mode-toggle { font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <header class="top-header">
+        <div class="header-left">
+            <svg class="logo" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7V17L12 22L22 17V7L12 2ZM12 4.144L20 8.5L12 12.856L4 8.5L12 4.144ZM4 10.5L11 14.5V20.856L4 16.5V10.5ZM13 14.5L20 10.5V16.5L13 20.856V14.5Z"/>
+            </svg>
+            <span class="logo-text">RoyalTraders</span>
+        </div>
+        <div class="header-right">
+            <div id="user-display" class="user-info-container hidden" style="display: flex; align-items: center; gap: 0.5rem;">
+                <div id="user-initials" style="background-color: #5c6bc0; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold;"></div>
+                <img id="country-flag" src="" alt="Country Flag" style="width: 25px; height: auto;">
+                <span id="user-balance" style="font-weight: bold;"></span>
+                <button id="logout-btn" class="btn btn-secondary btn-sm">Log Out</button>
+            </div>
+            <div id="auth-links" class="auth-links-container">
+                <button id="deriv-auth-btn" class="btn btn-secondary">Log in / Sign up with Deriv</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="main-nav">
+        <button class="hamburger" aria-label="Toggle Menu"><i class="fa-solid fa-bars"></i></button>
+        <div class="nav-links-container">
+            <a href="index.html" class="nav-link" aria-label="Dashboard" data-page="index.html"><i class="fa-solid fa-home"></i><span>Dashboard</span></a>
+            <a href="bot-builder.html" class="nav-link" aria-label="Bot Builder" data-page="bot-builder.html"><i class="fa-solid fa-hammer"></i><span>Bot Builder</span></a>
+            <a href="analysis-tool.html" class="nav-link" aria-label="Analysis Tool" data-page="analysis-tool.html"><i class="fa-solid fa-chart-line"></i><span>Analysis Tool</span></a>
+            <a href="batch-trader.html" class="nav-link" aria-label="Batch Trader" data-page="batch-trader.html"><i class="fa-solid fa-layer-group"></i><span>Batch Trader</span></a>
+            <a href="market-analyzer.html" class="nav-link" aria-label="Market Analyzer" data-page="market-analyzer.html"><i class="fa-solid fa-chart-area"></i><span>Market Analyzer</span></a>
+            <a href="frequency-analysis.html" class="nav-link" aria-label="Frequency Analysis" data-page="frequency-analysis.html"><i class="fa-solid fa-calculator"></i><span>Frequency Analysis</span></a>
+            <a href="digit-tool.html" class="nav-link" aria-label="Digit Tool" data-page="digit-tool.html"><i class="fa-solid fa-fingerprint"></i><span>Digit Tool</span></a>
+            <a href="free-bots.html" class="nav-link active" aria-label="Free Bots" data-page="free-bots.html"><i class="fa-solid fa-robot"></i><span>Free Bots</span></a>
+            <a href="copy-trader.html" class="nav-link" aria-label="Copy Trader" data-page="copy-trader.html"><i class="fa-solid fa-copy"></i><span>Copy Trader</span></a>
+            <a href="charts.html" class="nav-link" aria-label="Charts" data-page="charts.html"><i class="fa-solid fa-chart-bar"></i><span>Charts</span></a>
+        </div>
+        <div class="nav-right-actions">
+            <span id="statusTag" class="status-tag not-running">Not Running</span>
+            <button id="runButton" class="btn btn-run"><i class="fa-solid fa-play"></i><span id="runBtnText">Run All Bots</span></button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div data-page-content="free-bots.html">
+            <section class="section">
+                <h1 class="page-heading">Free Bots</h1>
+                <p class="page-subheading">Explore and use a collection of high-performing, free trading bots.</p>
+                <div class="filter-group-top">
+                    <button class="btn active-filter" data-filter="all">All</button>
+                    <button class="btn" data-filter="trending">Trending</button>
+                    <button class="btn" data-filter="new">New</button>
+                </div>
+                <div class="grid-container" id="botGrid">
+                    <div class="card bot-card" data-bot-name="Digit Over/Under Bot" data-bot-id="over-under-bot">
+                        <h3>Digit Over/Under Bot</h3>
+                        <p class="bot-description">Trades Over (≥5) or Under (<5) based on recent digit trends.</p>
+                        <div class="bot-stats">
+                            <span><i class="fa-solid fa-star"></i> 4.5</span>
+                            <span><i class="fa-solid fa-users"></i> 1,234</span>
+                        </div>
+                        <div class="bot-controls">
+                            <button class="btn btn-run use-now-btn">Use Now</button>
+                            <button class="btn btn-stop stop-btn hidden">Stop</button>
+                            <div class="test-mode-toggle">
+                                <input type="checkbox" id="test-mode-over-under">
+                                <label for="test-mode-over-under">Test Mode</label>
+                            </div>
+                            <span class="bot-status">Not Running</span>
+                        </div>
+                    </div>
+                    <div class="card bot-card" data-bot-name="Digit Matches Bot" data-bot-id="matches-bot">
+                        <h3>Digit Matches Bot</h3>
+                        <p class="bot-description">Trades Matches/Differs against the most frequent digit.</p>
+                        <div class="bot-stats">
+                            <span><i class="fa-solid fa-star"></i> 4.8</span>
+                            <span><i class="fa-solid fa-users"></i> 890</span>
+                        </div>
+                        <div class="bot-controls">
+                            <button class="btn btn-run use-now-btn">Use Now</button>
+                            <button class="btn btn-stop stop-btn hidden">Stop</button>
+                            <div class="test-mode-toggle">
+                                <input type="checkbox" id="test-mode-matches">
+                                <label for="test-mode-matches">Test Mode</label>
+                            </div>
+                            <span class="bot-status">Not Running</span>
+                        </div>
+                    </div>
+                    <div class="card bot-card" data-bot-name="Trend Follower Bot" data-bot-id="trend-follower-bot">
+                        <h3>Trend Follower Bot</h3>
+                        <p class="bot-description">Follows short-term price trends for Over/Under trades.</p>
+                        <div class="bot-stats">
+                            <span><i class="fa-solid fa-star"></i> 4.2</span>
+                            <span><i class="fa-solid fa-users"></i> 2,567</span>
+                        </div>
+                        <div class="bot-controls">
+                            <button class="btn btn-run use-now-btn">Use Now</button>
+                            <button class="btn btn-stop stop-btn hidden">Stop</button>
+                            <div class="test-mode-toggle">
+                                <input type="checkbox" id="test-mode-trend">
+                                <label for="test-mode-trend">Test Mode</label>
+                            </div>
+                            <span class="bot-status">Not Running</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="button-group mt-2">
+                    <button class="btn btn-secondary" id="loadMoreBtn">Load More</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div class="warning-bar">
+        <strong>Disclaimer:</strong> Trading involves risk. All analysis tools and bots are for informational purposes only.
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-left">
+            <span id="dateTime"></span>
+        </div>
+        <div class="footer-right">
+            <button id="settingsToggle" class="footer-btn" aria-label="Settings"><i class="fa-solid fa-cog"></i></button>
+            <button id="darkModeToggle" class="footer-btn" aria-label="Toggle dark/light mode"><i class="fa-solid fa-moon"></i></button>
+            <div class="language-select" style="display: flex; align-items: center;">
+                <button class="footer-btn" aria-label="Select language"><i class="fa-solid fa-globe"></i></button>
+                <i class="fa-solid fa-caret-down" style="margin-left: 0.25rem; color: var(--text-secondary);"></i>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module">
+        // Deriv Authentication
+        document.addEventListener('DOMContentLoaded', () => {
+            const APP_ID = '99973';
+            const derivAuthBtn = document.getElementById('deriv-auth-btn');
+            const userDisplay = document.getElementById('user-display');
+            const authLinks = document.getElementById('auth-links');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userInitials = document.getElementById('user-initials');
+            const userBalance = document.getElementById('user-balance');
+
+            if (derivAuthBtn) {
+                derivAuthBtn.addEventListener('click', () => {
+                    const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${APP_ID}&l=en&brand=deriv`;
+                    window.location.href = oauthUrl;
+                });
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    sessionStorage.removeItem('deriv_token');
+                    updateUIForLoginState(false);
+                    window.location.reload();
+                });
+            }
+
+            function updateUIForLoginState(isLoggedIn) {
+                if (isLoggedIn) {
+                    authLinks.classList.add('hidden');
+                    userDisplay.classList.remove('hidden');
+                    userInitials.textContent = 'RT';
+                    userBalance.textContent = '$1,250.00';
+                } else {
+                    authLinks.classList.remove('hidden');
+                    userDisplay.classList.add('hidden');
+                    document.querySelectorAll('.use-now-btn').forEach(btn => {
+                        btn.disabled = true;
+                        btn.title = 'Please log in to use bots';
+                    });
+                }
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            if (token) {
+                sessionStorage.setItem('deriv_token', token);
+                updateUIForLoginState(true);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                const storedToken = sessionStorage.getItem('deriv_token');
+                updateUIForLoginState(!!storedToken);
+            }
+
+            // Hamburger Menu
+            const hamburger = document.querySelector('.hamburger');
+            const navLinks = document.querySelector('.nav-links-container');
+            if (hamburger) {
+                hamburger.addEventListener('click', () => {
+                    navLinks.classList.toggle('active');
+                    const icon = hamburger.querySelector('i');
+                    icon.classList.toggle('fa-bars');
+                    icon.classList.toggle('fa-times');
+                });
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Shared Features
+            const currentPage = window.location.pathname.split('/').pop() || 'free-bots.html';
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.page === currentPage);
+            });
+
+            function updateDateTime() {
+                const now = new Date();
+                document.getElementById('dateTime').textContent = now.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' });
+            }
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            darkModeToggle.addEventListener('click', () => {
+                const body = document.body;
+                const currentTheme = body.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                body.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                darkModeToggle.querySelector('i').className = newTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+            });
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+            darkModeToggle.querySelector('i').className = savedTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+
+            document.getElementById('settingsToggle').addEventListener('click', () => {
+                alert('Settings modal would open here.');
+            });
+
+            // Free Bots Functionality
+            const APP_ID = '99973';
+            const runButton = document.getElementById('runButton');
+            const runBtnText = document.getElementById('runBtnText');
+            const statusTag = document.getElementById('statusTag');
+            const botGrid = document.getElementById('botGrid');
+            const filterButtons = document.querySelectorAll('.filter-group-top .btn');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+            const bots = {
+                'over-under-bot': {
+                    ws: null,
+                    tickHistory: [],
+                    overUnderSequence: [],
+                    isRunning: false,
+                    testMode: false,
+                    contractId: null,
+                    async start() {
+                        const botCard = botGrid.querySelector(`[data-bot-id="over-under-bot"]`);
+                        const status = botCard.querySelector('.bot-status');
+                        const useBtn = botCard.querySelector('.use-now-btn');
+                        const stopBtn = botCard.querySelector('.stop-btn');
+                        const token = sessionStorage.getItem('deriv_token');
+                        if (!token) {
+                            alert('Please log in to run bots');
+                            status.textContent = 'Not Running';
+                            return;
+                        }
+                        status.textContent = 'Connecting...';
+                        useBtn.classList.add('hidden');
+                        stopBtn.classList.remove('hidden');
+                        this.isRunning = true;
+                        updateGlobalStatus();
+
+                        try {
+                            this.ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                            this.ws.onopen = () => {
+                                console.log('Over/Under Bot: WebSocket connected');
+                                this.ws.send(JSON.stringify({
+                                    authorize: token
+                                }));
+                            };
+                            this.ws.onmessage = async (msg) => {
+                                const data = JSON.parse(msg.data);
+                                if (data.msg_type === 'authorize') {
+                                    this.ws.send(JSON.stringify({
+                                        ticks: 'R_100',
+                                        subscribe: 1
+                                    }));
+                                    status.textContent = 'Waiting for Signal';
+                                    statusTag.classList.remove('not-running', 'running', 'trade-placed', 'error');
+                                    statusTag.classList.add('waiting');
+                                    statusTag.textContent = 'Waiting';
+                                } else if (data.msg_type === 'tick') {
+                                    const lastDigit = parseInt(data.tick.quote.toString().slice(-1), 10);
+                                    console.log(`Over/Under Bot: Tick received, last digit: ${lastDigit}`);
+                                    this.tickHistory.push(lastDigit);
+                                    if (this.tickHistory.length > 50) this.tickHistory.shift();
+                                    const overCount = this.tickHistory.filter(d => d >= 5).length;
+                                    const overProb = this.tickHistory.length > 0 ? (overCount / this.tickHistory.length) * 100 : 0;
+                                    const outcome = overProb >= 60 ? 'OVER' : 'UNDER';
+                                    this.overUnderSequence.push(outcome);
+                                    if (this.overUnderSequence.length > 5) this.overUnderSequence.shift();
+                                    if (this.overUnderSequence.slice(-2).every(o => o === outcome)) {
+                                        await this.placeTrade(outcome, this.testMode, token);
+                                        status.textContent = 'Trade Placed';
+                                        statusTag.classList.remove('waiting', 'running', 'error');
+                                        statusTag.classList.add('trade-placed');
+                                        statusTag.textContent = 'Trade Placed';
+                                    } else {
+                                        status.textContent = 'Running';
+                                        statusTag.classList.remove('waiting', 'trade-placed', 'error');
+                                        statusTag.classList.add('running');
+                                        statusTag.textContent = 'Running';
+                                    }
+                                } else if (data.error) {
+                                    console.error('Over/Under Bot: API error:', data.error.message);
+                                    status.textContent = 'Error';
+                                    statusTag.classList.remove('waiting', 'running', 'trade-placed');
+                                    statusTag.classList.add('error');
+                                    statusTag.textContent = 'Error';
+                                    this.stop();
+                                }
+                            };
+                            this.ws.onclose = () => {
+                                console.log('Over/Under Bot: WebSocket closed');
+                                status.textContent = 'Not Running';
+                                this.isRunning = false;
+                                updateGlobalStatus();
+                                useBtn.classList.remove('hidden');
+                                stopBtn.classList.add('hidden');
+                            };
+                            this.ws.onerror = (error) => {
+                                console.error('Over/Under Bot: WebSocket error:', error);
+                                status.textContent = 'Error';
+                                statusTag.classList.remove('waiting', 'running', 'trade-placed');
+                                statusTag.classList.add('error');
+                                statusTag.textContent = 'Error';
+                                this.stop();
+                            };
+                        } catch (error) {
+                            console.error('Over/Under Bot: Failed to start:', error);
+                            status.textContent = 'Error';
+                            statusTag.classList.add('error');
+                            statusTag.textContent = 'Error';
+                            this.stop();
+                        }
+                    },
+                    stop() {
+                        if (this.ws) {
+                            this.ws.close();
+                            this.ws = null;
+                        }
+                        this.isRunning = false;
+                        this.contractId = null;
+                        const botCard = botGrid.querySelector(`[data-bot-id="over-under-bot"]`);
+                        botCard.querySelector('.bot-status').textContent = 'Not Running';
+                        botCard.querySelector('.use-now-btn').classList.remove('hidden');
+                        botCard.querySelector('.stop-btn').classList.add('hidden');
+                        updateGlobalStatus();
+                    },
+                    async placeTrade(outcome, testMode, token) {
+                        if (testMode) {
+                            console.log(`[Test Mode] Over/Under Bot: Placing ${outcome} trade on R_100`);
+                            return;
+                        }
+                        try {
+                            const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                            ws.onopen = () => {
+                                ws.send(JSON.stringify({
+                                    authorize: token
+                                }));
+                            };
+                            ws.onmessage = (msg) => {
+                                const data = JSON.parse(msg.data);
+                                if (data.msg_type === 'authorize') {
+                                    ws.send(JSON.stringify({
+                                        buy: 1,
+                                        price: 0.35,
+                                        parameters: {
+                                            contract_type: outcome,
+                                            symbol: 'R_100',
+                                            duration: 1,
+                                            duration_unit: 't',
+                                            currency: 'USD',
+                                            barrier: '5'
+                                        }
+                                    }));
+                                } else if (data.msg_type === 'buy') {
+                                    this.contractId = data.buy.contract_id;
+                                    console.log(`Over/Under Bot: Trade placed: ${outcome} on R_100, Contract ID: ${data.buy.contract_id}`);
+                                    ws.close();
+                                } else if (data.error) {
+                                    console.error('Over/Under Bot: Trade error:', data.error.message);
+                                    ws.close();
+                                }
+                            };
+                            ws.onerror = (error) => {
+                                console.error('Over/Under Bot: Trade WebSocket error:', error);
+                                ws.close();
+                            };
+                        } catch (error) {
+                            console.error('Over/Under Bot: Trade failed:', error);
+                        }
+                    }
+                },
+                'matches-bot': {
+                    ws: null,
+                    tickHistory: [],
+                    matchesTarget: -1,
+                    matchesSequence: [],
+                    isRunning: false,
+                    testMode: false,
+                    contractId: null,
+                    async start() {
+                        const botCard = botGrid.querySelector(`[data-bot-id="matches-bot"]`);
+                        const status = botCard.querySelector('.bot-status');
+                        const useBtn = botCard.querySelector('.use-now-btn');
+                        const stopBtn = botCard.querySelector('.stop-btn');
+                        const token = sessionStorage.getItem('deriv_token');
+                        if (!token) {
+                            alert('Please log in to run bots');
+                            status.textContent = 'Not Running';
+                            return;
+                        }
+                        status.textContent = 'Connecting...';
+                        useBtn.classList.add('hidden');
+                        stopBtn.classList.remove('hidden');
+                        this.isRunning = true;
+                        updateGlobalStatus();
+
+                        try {
+                            this.ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                            this.ws.onopen = () => {
+                                console.log('Matches Bot: WebSocket connected');
+                                this.ws.send(JSON.stringify({
+                                    authorize: token
+                                }));
+                            };
+                            this.ws.onmessage = async (msg) => {
+                                const data = JSON.parse(msg.data);
+                                if (data.msg_type === 'authorize') {
+                                    this.ws.send(JSON.stringify({
+                                        ticks: 'R_100',
+                                        subscribe: 1
+                                    }));
+                                    status.textContent = 'Waiting for Signal';
+                                    statusTag.classList.remove('not-running', 'running', 'trade-placed', 'error');
+                                    statusTag.classList.add('waiting');
+                                    statusTag.textContent = 'Waiting';
+                                } else if (data.msg_type === 'tick') {
+                                    const lastDigit = parseInt(data.tick.quote.toString().slice(-1), 10);
+                                    console.log(`Matches Bot: Tick received, last digit: ${lastDigit}`);
+                                    this.tickHistory.push(lastDigit);
+                                    if (this.tickHistory.length > 50) this.tickHistory.shift();
+                                    const digitCounts = Array(10).fill(0);
+                                    this.tickHistory.forEach(d => digitCounts[d]++);
+                                    this.matchesTarget = digitCounts.indexOf(Math.max(...digitCounts));
+                                    const outcome = lastDigit === this.matchesTarget ? 'MATCHES' : 'DIFFERS';
+                                    this.matchesSequence.push(outcome);
+                                    if (this.matchesSequence.length > 5) this.matchesSequence.shift();
+                                    if (this.matchesSequence.slice(-2).every(o => o === 'MATCHES')) {
+                                        await this.placeTrade('MATCHES', this.testMode, token);
+                                        status.textContent = 'Trade Placed';
+                                        statusTag.classList.remove('waiting', 'running', 'error');
+                                        statusTag.classList.add('trade-placed');
+                                        statusTag.textContent = 'Trade Placed';
+                                    } else {
+                                        status.textContent = 'Running';
+                                        statusTag.classList.remove('waiting', 'trade-placed', 'error');
+                                        statusTag.classList.add('running');
+                                        statusTag.textContent = 'Running';
+                                    }
+                                } else if (data.error) {
+                                    console.error('Matches Bot: API error:', data.error.message);
+                                    status.textContent = 'Error';
+                                    statusTag.classList.remove('waiting', 'running', 'trade-placed');
+                                    statusTag.classList.add('error');
+                                    statusTag.textContent = 'Error';
+                                    this.stop();
+                                }
+                            };
+                            this.ws.onclose = () => {
+                                console.log('Matches Bot: WebSocket closed');
+                                status.textContent = 'Not Running';
+                                this.isRunning = false;
+                                updateGlobalStatus();
+                                useBtn.classList.remove('hidden');
+                                stopBtn.classList.add('hidden');
+                            };
+                            this.ws.onerror = (error) => {
+                                console.error('Matches Bot: WebSocket error:', error);
+                                status.textContent = 'Error';
+                                statusTag.classList.remove('waiting', 'running', 'trade-placed');
+                                statusTag.classList.add('error');
+                                statusTag.textContent = 'Error';
+                                this.stop();
+                            };
+                        } catch (error) {
+                            console.error('Matches Bot: Failed to start:', error);
+                            status.textContent = 'Error';
+                            statusTag.classList.add('error');
+                            statusTag.textContent = 'Error';
+                            this.stop();
+                        }
+                    },
+                    stop() {
+                        if (this.ws) {
+                            this.ws.close();
+                            this.ws = null;
+                        }
+                        this.isRunning = false;
+                        this.contractId = null;
+                        const botCard = botGrid.querySelector(`[data-bot-id="matches-bot"]`);
+                        botCard.querySelector('.bot-status').textContent = 'Not Running';
+                        botCard.querySelector('.use-now-btn').classList.remove('hidden');
+                        botCard.querySelector('.stop-btn').classList.add('hidden');
+                        updateGlobalStatus();
+                    },
+                    async placeTrade(outcome, testMode, token) {
+                        if (testMode) {
+                            console.log(`[Test Mode] Matches Bot: Placing ${outcome} trade on R_100 for digit ${this.matchesTarget}`);
+                            return;
+                        }
+                        try {
+                            const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                            ws.onopen = () => {
+                                ws.send(JSON.stringify({
+                                    authorize: token
+                                }));
+                            };
+                            ws.onmessage = (msg) => {
+                                const data = JSON.parse(msg.data);
+                                if (data.msg_type === 'authorize') {
+                                    ws.send(JSON.stringify({
+                                        buy: 1,
+                                        price: 0.35,
+                                        parameters: {
+                                            contract_type: outcome,
+                                            symbol: 'R_100',
+                                            duration: 1,
+                                            duration_unit: 't',
+                                            currency: 'USD',
+                                            barrier: this.matchesTarget.toString()
+                                        }
+                                    }));
+                                } else if (data.msg_type === 'buy') {
+                                    this.contractId = data.buy.contract_id;
+                                    console.log(`Matches Bot: Trade placed: ${outcome} on R_100 for digit ${this.matchesTarget}, Contract ID: ${data.buy.contract_id}`);
+                                    ws.close();
+                                } else if (data.error) {
+                                    console.error('Matches Bot: Trade error:', data.error.message);
+                                    ws.close();
+                                }
+                            };
+                            ws.onerror = (error) => {
+                                console.error('Matches Bot: Trade WebSocket error:', error);
+                                ws.close();
+                            };
+                        } catch (error) {
+                            console.error('Matches Bot: Trade failed:', error);
+                        }
+                    }
+                },
+                'trend-follower-bot': {
+                    ws: null,
+                    tickHistory: [],
+                    overUnderSequence: [],
+                    isRunning: false,
+                    testMode: false,
+                    contractId: null,
+                    async start() {
+                        const botCard = botGrid.querySelector(`[data-bot-id="trend-follower-bot"]`);
+                        const status = botCard.querySelector('.bot-status');
+                        const useBtn = botCard.querySelector('.use-now-btn');
+                        const stopBtn = botCard.querySelector('.stop-btn');
+                        const token = sessionStorage.getItem('deriv_token');
+                        if (!token) {
+                            alert('Please log in to run bots');
+                            status.textContent = 'Not Running';
+                            return;
+                        }
+                        status.textContent = 'Connecting...';
+                        useBtn.classList.add('hidden');
+                        stopBtn.classList.remove('hidden');
+                        this.isRunning = true;
+                        updateGlobalStatus();
+
+                        try {
+                            this.ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                            this.ws.onopen = () => {
+                                console.log('Trend Follower Bot: WebSocket connected');
+                                this.ws.send(JSON.stringify({
+                                    authorize: token
+                                }));
+                            };
+                            this.ws.onmessage = async (msg) => {
+                                const data = JSON.parse(msg.data);
+                                if (data.msg_type === 'authorize') {
+                                    this.ws.send(JSON.stringify({
+                                        ticks: 'R_100',
+                                        subscribe: 1
+                                    }));
+                                    status.textContent = 'Waiting for Signal';
+                                    statusTag.classList.remove('not-running', 'running', 'trade-placed', 'error');
+                                    statusTag.classList.add('waiting');
+                                    statusTag.textContent = 'Waiting';
+                                } else if (data.msg_type === 'tick') {
+                                    const lastDigit = parseInt(data.tick.quote.toString().slice(-1), 10);
+                                    console.log(`Trend Follower Bot: Tick received, last digit: ${lastDigit}`);
+                                    const outcome = lastDigit >= 5 ? 'OVER' : 'UNDER';
+                                    this.overUnderSequence.push(outcome);
+                                    if (this.overUnderSequence.length > 5) this.overUnderSequence.shift();
+                                    if (this.overUnderSequence.slice(-3).every(o => o === outcome)) {
+                                        await this.placeTrade(outcome, this.testMode, token);
+                                        status.textContent = 'Trade Placed';
+                                        statusTag.classList.remove('waiting', 'running', 'error');
+                                        statusTag.classList.add('trade-placed');
+                                        statusTag.textContent = 'Trade Placed';
+                                    } else {
+                                        status.textContent = 'Running';
+                                        statusTag.classList.remove('waiting', 'trade-placed', 'error');
+                                        statusTag.classList.add('running');
+                                        statusTag.textContent = 'Running';
+                                    }
+                                } else if (data.error) {
+                                    console.error('Trend Follower Bot: API error:', data.error.message);
+                                    status.textContent = 'Error';
+                                    statusTag.classList.remove('waiting', 'running', 'trade-placed');
+                                    statusTag.classList.add('error');
+                                    statusTag.textContent = 'Error';
+                                    this.stop();
+                                }
+                            };
+                            this.ws.onclose = () => {
+                                console.log('Trend Follower Bot: WebSocket closed');
+                                status.textContent = 'Not Running';
+                                this.isRunning = false;
+                                updateGlobalStatus();
+                                useBtn.classList.remove('hidden');
+                                stopBtn.classList.add('hidden');
+                            };
+                            this.ws.onerror = (error) => {
+                                console.error('Trend Follower Bot: WebSocket error:', error);
+                                status.textContent = 'Error';
+                                statusTag.classList.remove('waiting', 'running', 'trade-placed');
+                                statusTag.classList.add('error');
+                                statusTag.textContent = 'Error';
+                                this.stop();
+                            };
+                        } catch (error) {
+                            console.error('Trend Follower Bot: Failed to start:', error);
+                            status.textContent = 'Error';
+                            statusTag.classList.add('error');
+                            statusTag.textContent = 'Error';
+                            this.stop();
+                        }
+                    },
+                    stop() {
+                        if (this.ws) {
+                            this.ws.close();
+                            this.ws = null;
+                        }
+                        this.isRunning = false;
+                        this.contractId = null;
+                        const botCard = botGrid.querySelector(`[data-bot-id="trend-follower-bot"]`);
+                        botCard.querySelector('.bot-status').textContent = 'Not Running';
+                        botCard.querySelector('.use-now-btn').classList.remove('hidden');
+                        botCard.querySelector('.stop-btn').classList.add('hidden');
+                        updateGlobalStatus();
+                    },
+                    async placeTrade(outcome, testMode, token) {
+                        if (testMode) {
+                            console.log(`[Test Mode] Trend Follower Bot: Placing ${outcome} trade on R_100`);
+                            return;
+                        }
+                        try {
+                            const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                            ws.onopen = () => {
+                                ws.send(JSON.stringify({
+                                    authorize: token
+                                }));
+                            };
+                            ws.onmessage = (msg) => {
+                                const data = JSON.parse(msg.data);
+                                if (data.msg_type === 'authorize') {
+                                    ws.send(JSON.stringify({
+                                        buy: 1,
+                                        price: 0.35,
+                                        parameters: {
+                                            contract_type: outcome,
+                                            symbol: 'R_100',
+                                            duration: 1,
+                                            duration_unit: 't',
+                                            currency: 'USD',
+                                            barrier: '5'
+                                        }
+                                    }));
+                                } else if (data.msg_type === 'buy') {
+                                    this.contractId = data.buy.contract_id;
+                                    console.log(`Trend Follower Bot: Trade placed: ${outcome} on R_100, Contract ID: ${data.buy.contract_id}`);
+                                    ws.close();
+                                } else if (data.error) {
+                                    console.error('Trend Follower Bot: Trade error:', data.error.message);
+                                    ws.close();
+                                }
+                            };
+                            ws.onerror = (error) => {
+                                console.error('Trend Follower Bot: Trade WebSocket error:', error);
+                                ws.close();
+                            };
+                        } catch (error) {
+                            console.error('Trend Follower Bot: Trade failed:', error);
+                        }
+                    }
+                }
+            };
+
+            function updateGlobalStatus() {
+                const anyRunning = Object.values(bots).some(bot => bot.isRunning);
+                statusTag.classList.remove('not-running', 'running', 'trade-placed', 'error', 'waiting');
+                runBtnText.textContent = anyRunning ? 'Stop All Bots' : 'Run All Bots';
+                if (anyRunning) {
+                    statusTag.classList.add('running');
+                    statusTag.textContent = 'Running';
+                } else {
+                    statusTag.classList.add('not-running');
+                    statusTag.textContent = 'Not Running';
+                }
+            }
+
+            document.querySelectorAll('.use-now-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const botCard = btn.closest('.bot-card');
+                    const botId = botCard.dataset.botId;
+                    const testMode = botCard.querySelector('input[type="checkbox"]').checked;
+                    bots[botId].testMode = testMode;
+                    await bots[botId].start();
+                });
+            });
+
+            document.querySelectorAll('.stop-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const botCard = btn.closest('.bot-card');
+                    const botId = botCard.dataset.botId;
+                    bots[botId].stop();
+                });
+            });
+
+            document.querySelectorAll('.test-mode-toggle input').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const botCard = checkbox.closest('.bot-card');
+                    const botId = botCard.dataset.botId;
+                    bots[botId].testMode = e.target.checked;
+                    console.log(`${botId} test mode: ${e.target.checked}`);
+                });
+            });
+
+            runButton.addEventListener('click', async () => {
+                const allRunning = Object.values(bots).every(bot => bot.isRunning);
+                if (allRunning) {
+                    Object.values(bots).forEach(bot => bot.stop());
+                } else {
+                    const token = sessionStorage.getItem('deriv_token');
+                    if (!token) {
+                        alert('Please log in to run bots');
+                        return;
+                    }
+                    statusTag.classList.remove('not-running', 'running', 'trade-placed', 'error');
+                    statusTag.classList.add('connecting');
+                    statusTag.textContent = 'Connecting...';
+                    runBtnText.textContent = 'Starting...';
+                    await Promise.all(Object.entries(bots).map(async ([botId, bot]) => {
+                        const botCard = botGrid.querySelector(`[data-bot-id="${botId}"]`);
+                        bot.testMode = botCard.querySelector('input[type="checkbox"]').checked;
+                        await bot.start();
+                    }));
+                }
+            });
+
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterButtons.forEach(b => b.classList.remove('active-filter'));
+                    btn.classList.add('active-filter');
+                    const filter = btn.dataset.filter;
+                    document.querySelectorAll('.bot-card').forEach(card => {
+                        card.classList.remove('hidden');
+                        if (filter !== 'all') {
+                            card.classList.add('hidden');
+                            if ((filter === 'trending' && ['over-under-bot', 'matches-bot'].includes(card.dataset.botId)) ||
+                                (filter === 'new' && card.dataset.botId === 'trend-follower-bot')) {
+                                card.classList.remove('hidden');
+                            }
+                        }
+                    });
+                });
+            });
+
+            loadMoreBtn.addEventListener('click', () => {
+                alert('More bots would be loaded here (placeholder functionality).');
+            });
+        });
+    </script>
+</body>
+</html>
