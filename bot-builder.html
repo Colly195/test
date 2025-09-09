@@ -865,730 +865,879 @@
     </footer>
 
     <script src="auth.js" type="module"></script>
-    <script type="module">
-        document.addEventListener('DOMContentLoaded', () => {
-            const APP_ID = '99973';
-            let ws = null;
-            let botBlocks = [];
-            let previewChart = null;
-            let isDragging = false;
-            let isRunning = false;
-            let priceData = [];
-            let profit = 0;
-            let wins = 0;
-            let totalTrades = 0;
-            let totalCommission = 0;
-            const statusTag = document.getElementById('statusTag');
-            const runButton = document.getElementById('runButton');
-            const runBtnText = document.getElementById('runBtnText');
-            const chartTypeSelect = document.getElementById('chart-type');
-            const realProfit = document.getElementById('realProfit');
-            const winRate = document.getElementById('winRate');
-            const tradeCount = document.getElementById('tradeCount');
-            const commissionEarned = document.getElementById('commissionEarned');
-            const maxDrawdown = document.getElementById('maxDrawdown');
-            const riskLevel = document.getElementById('riskLevel');
-            let currentChartType = chartTypeSelect.value;
-            const stakeBlock = document.getElementById('stakeBlock');
-            const intervalBlock = document.getElementById('intervalBlock');
-            const levelsBlock = document.getElementById('levelsBlock');
-            const rsiBlock = document.getElementById('rsiBlock');
-            const macdBlock = document.getElementById('macdBlock');
-            const stopLossBlock = document.getElementById('stopLossBlock');
-            const backtestForm = document.getElementById('backtestForm');
-            const runBacktestBtn = document.getElementById('runBacktest');
-            let currentContracts = [];
-            let payoutRate = 0.95; // 95% payout rate
+   <script type="module">
+document.addEventListener('DOMContentLoaded', () => {
+    const APP_ID = '99973';
+    let ws = null;
+    let botBlocks = [];
+    let previewChart = null;
+    let isDragging = false;
+    let isRunning = false;
+    let priceData = [];
+    let profit = 0;
+    let wins = 0;
+    let totalTrades = 0;
+    let totalCommission = 0;
+    const statusTag = document.getElementById('statusTag');
+    const runButton = document.getElementById('runButton');
+    const runBtnText = document.getElementById('runBtnText');
+    const chartTypeSelect = document.getElementById('chart-type');
+    const realProfit = document.getElementById('realProfit');
+    const winRate = document.getElementById('winRate');
+    const tradeCount = document.getElementById('tradeCount');
+    const commissionEarned = document.getElementById('commissionEarned');
+    const maxDrawdown = document.getElementById('maxDrawdown');
+    const riskLevel = document.getElementById('riskLevel');
+    const userBalance = document.getElementById('user-balance');
+    const botWorkspace = document.getElementById('workspace');
+    const trashCan = document.getElementById('trashCan');
+    let currentChartType = chartTypeSelect.value;
+    const stakeBlock = document.getElementById('stakeBlock');
+    const intervalBlock = document.getElementById('intervalBlock');
+    const levelsBlock = document.getElementById('levelsBlock');
+    const rsiBlock = document.getElementById('rsiBlock');
+    const macdBlock = document.getElementById('macdBlock');
+    const stopLossBlock = document.getElementById('stopLossBlock');
+    const bollingerBlock = document.getElementById('bollingerBlock');
+    const maBlock = document.getElementById('maBlock');
+    const stochasticBlock = document.getElementById('stochasticBlock');
+    const takeProfitBlock = document.getElementById('takeProfitBlock');
+    const trailingStopBlock = document.getElementById('trailingStopBlock');
+    const maxTradesBlock = document.getElementById('maxTradesBlock');
+    const dailyLossBlock = document.getElementById('dailyLossBlock');
+    const positionSizeBlock = document.getElementById('positionSizeBlock');
+    const tradeDirectionBlock = document.getElementById('tradeDirectionBlock');
+    const contractTypeBlock = document.getElementById('contractTypeBlock');
+    const durationUnitBlock = document.getElementById('durationUnitBlock');
+    const runBacktestBtn = document.getElementById('runBacktest');
+    let currentContracts = [];
+    const payoutRate = 0.95; // 95% payout rate
+    let savedBots = JSON.parse(localStorage.getItem('savedBots')) || [];
+    let tradeHistory = [];
 
-            let savedBots = JSON.parse(localStorage.getItem('savedBots')) || [];
-
-            function renderBotList() {
-                const botList = document.getElementById('botList');
-                botList.innerHTML = '';
-                savedBots.forEach((bot, index) => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<span>${bot.name}</span><span class="delete-bot" data-index="${index}" title="Delete">&times;</span>`;
-                    li.addEventListener('click', (e) => {
-                        if (!e.target.classList.contains('delete-bot')) loadBot(bot.config);
-                    });
-                    botList.appendChild(li);
-                });
-            }
-            renderBotList();
-
-            document.getElementById('botList').addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-bot')) {
-                    const index = parseInt(e.target.dataset.index);
-                    if (confirm(`Delete ${savedBots[index].name}?`)) {
-                        savedBots.splice(index, 1);
-                        localStorage.setItem('savedBots', JSON.stringify(savedBots));
-                        renderBotList();
-                    }
-                }
+    function renderBotList() {
+        const botList = document.getElementById('botList');
+        botList.innerHTML = '';
+        savedBots.forEach((bot, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${bot.name}</span><span class="delete-bot" data-index="${index}" title="Delete">&times;</span>`;
+            li.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('delete-bot')) loadBot(bot.config);
             });
+            botList.appendChild(li);
+        });
+    }
+    renderBotList();
 
-            function updateChartTheme(theme) {
-                if (previewChart) {
-                    previewChart.options.plugins.title.color = theme === 'dark' ? '#ffffff' : '#2c3e50';
-                    previewChart.options.scales.x.grid.color = theme === 'dark' ? '#495057' : '#e0e0e0';
-                    previewChart.options.scales.y.grid.color = theme === 'dark' ? '#495057' : '#e0e0e0';
-                    previewChart.options.scales.x.ticks.color = theme === 'dark' ? '#adb5bd' : '#6c757d';
-                    previewChart.options.scales.y.ticks.color = theme === 'dark' ? '#adb5bd' : '#6c757d';
-                    previewChart.data.datasets[0].borderColor = theme === 'dark' ? '#4fc3f7' : '#3498db';
-                    previewChart.data.datasets[0].backgroundColor = theme === 'dark' ? 'rgba(79, 195, 247, 0.2)' : 'rgba(52, 152, 219, 0.2)';
-                    previewChart.data.datasets[0].barBackgroundColor = {
+    document.getElementById('botList').addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-bot')) {
+            const index = parseInt(e.target.dataset.index);
+            if (confirm(`Delete ${savedBots[index].name}?`)) {
+                savedBots.splice(index, 1);
+                localStorage.setItem('savedBots', JSON.stringify(savedBots));
+                renderBotList();
+            }
+        }
+    });
+
+    function updateChartTheme(theme) {
+        if (previewChart) {
+            previewChart.options.plugins.title.color = theme === 'dark' ? '#ffffff' : '#2c3e50';
+            previewChart.options.scales.x.grid.color = theme === 'dark' ? '#495057' : '#e0e0e0';
+            previewChart.options.scales.y.grid.color = theme === 'dark' ? '#495057' : '#e0e0e0';
+            previewChart.options.scales.x.ticks.color = theme === 'dark' ? '#adb5bd' : '#6c757d';
+            previewChart.options.scales.y.ticks.color = theme === 'dark' ? '#adb5bd' : '#6c757d';
+            previewChart.data.datasets[0].borderColor = theme === 'dark' ? '#4fc3f7' : '#3498db';
+            previewChart.data.datasets[0].backgroundColor = theme === 'dark' ? 'rgba(79, 195, 247, 0.2)' : 'rgba(52, 152, 219, 0.2)';
+            previewChart.data.datasets[0].barBackgroundColor = {
+                up: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-up'),
+                down: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-down'),
+                unchanged: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-up')
+            };
+            previewChart.update();
+        }
+    }
+
+    function initializeChart() {
+        const ctx = document.getElementById('previewChart').getContext('2d');
+        priceData = generateDefaultData();
+        previewChart = new Chart(ctx, {
+            type: currentChartType === 'candlestick' ? 'candlestick' : 'line',
+            data: {
+                datasets: [{
+                    label: 'Price',
+                    data: priceData,
+                    borderColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-line'),
+                    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-line').replace(')', ', 0.2)'),
+                    borderWidth: currentChartType === 'candlestick' ? 1 : 2,
+                    fill: currentChartType === 'candlestick' ? false : false,
+                    pointRadius: currentChartType === 'candlestick' ? 0 : 0,
+                    tension: currentChartType === 'candlestick' ? 0 : 0.1,
+                    barBackgroundColor: currentChartType === 'candlestick' ? {
                         up: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-up'),
                         down: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-down'),
                         unchanged: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-up')
-                    };
-                    previewChart.update();
-                }
-            }
-
-            function initializeChart() {
-                const ctx = document.getElementById('previewChart').getContext('2d');
-                priceData = generateDefaultData();
-                previewChart = new Chart(ctx, {
-                    type: currentChartType === 'candlestick' ? 'candlestick' : 'line',
-                    data: {
-                        datasets: [{
-                            label: 'Price',
-                            data: priceData,
-                            borderColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-line'),
-                            backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-line').replace(')', ', 0.2)'),
-                            borderWidth: currentChartType === 'candlestick' ? 1 : 2,
-                            fill: currentChartType === 'candlestick' ? false : false,
-                            pointRadius: currentChartType === 'candlestick' ? 0 : 0,
-                            tension: currentChartType === 'candlestick' ? 0 : 0.1,
-                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
-                            barBackgroundColor: currentChartType === 'candlestick' ? {
-                                up: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-up'),
-                                down: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-down'),
-                                unchanged: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-up')
-                            } : undefined
-                        }]
+                    } : undefined
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Bot Preview Chart',
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                        font: { size: 16 }
                     },
-                    options: {
-                        responsive: true;
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: 'Bot Preview Chart',
-                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
-                                font: { size: 16 }
-                            },
-                            legend: { display: false }
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute',
+                            displayFormats: { minute: 'HH:mm' }
                         },
-                        scales: {
-                            x: {
-                                type: 'time',
-                                time: {
-                                    unit: 'minute',
-                                    displayFormats: { minute: 'HH:mm' }
-                                },
-                                grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid') },
-                                ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') }
-                            },
-                            y: {
-                                grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid') },
-                                ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') }
-                            }
-                        }
-                    }
-                });
-                updateChartTheme(savedTheme);
-            }
-
-            function generateDefaultData() {
-                const now = Date.now();
-                const defaultData = [];
-                for (let i = 0; i < 10; i++) {
-                    const time = now - (9 - i) * 60000;
-                    const basePrice = 1000 + Math.random() * 100;
-                    if (currentChartType === 'candlestick') {
-                        defaultData.push({
-                            x: time,
-                            o: basePrice,
-                            h: basePrice + Math.random() * 10,
-                            l: basePrice - Math.random() * 10,
-                            c: basePrice + (Math.random() - 0.5) * 10
-                        });
-                    } else {
-                        defaultData.push({ x: time, y: basePrice });
+                        grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid') },
+                        ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') }
+                    },
+                    y: {
+                        grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid') },
+                        ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') }
                     }
                 }
-                return defaultData;
-            }
-
-            function updateChart(price, time, isCandle = false) {
-                if (currentChartType === 'candlestick') {
-                    if (isCandle) {
-                        priceData.push(price); // Assume price is {x, o, h, l, c}
-                    } else {
-                        const lastCandle = priceData[priceData.length - 1];
-                        const parsedPrice = parseFloat(price);
-                        if (lastCandle && time - lastCandle.x < 60000) {
-                            lastCandle.c = parsedPrice;
-                            lastCandle.h = Math.max(lastCandle.h, parsedPrice);
-                            lastCandle.l = Math.min(lastCandle.l, parsedPrice);
-                        } else {
-                            priceData.push({
-                                x: time,
-                                o: lastCandle ? lastCandle.c : parsedPrice,
-                                h: parsedPrice,
-                                l: parsedPrice,
-                                c: parsedPrice
-                            });
-                        }
-                    }
-                } else {
-                    priceData.push({ x: time, y: parseFloat(price) });
-                }
-                if (priceData.length > 100) priceData.shift();
-                previewChart.data.datasets[0].data = priceData;
-                previewChart.update('none');
-            }
-
-            function startBot(symbol) {
-                const token = sessionStorage.getItem('deriv_token');
-                if (!token) {
-                    alert('Please log in to Deriv to run the bot.');
-                    stopBot();
-                    return;
-                }
-                const marketBlock = botBlocks.find(b => b.type === 'market');
-                const strategyBlock = botBlocks.find(b => b.type === 'strategy');
-                const stakeBlock = botBlocks.find(b => b.type === 'stake');
-                if (!marketBlock || !strategyBlock || !stakeBlock) {
-                    alert('Please configure market, strategy, and stake.');
-                    stopBot();
-                    return;
-                }
-                const stake = parseFloat(stakeBlock.element.querySelector('input').value);
-                const balance = parseFloat(userBalance.textContent.replace('$', '')) || 0;
-                if (stake > balance) {
-                    alert('Insufficient balance for this stake.');
-                    stopBot();
-                    return;
-                }
-                if (ws) {
-                    ws.close();
-                    ws = null;
-                }
-                isRunning = true;
-                statusTag.classList.remove('not-running', 'running', 'error');
-                statusTag.classList.add('connecting');
-                statusTag.textContent = 'Connecting...';
-                runBtnText.textContent = 'Stop Bot';
-                runButton.innerHTML = '<i class="fa-solid fa-stop"></i>Stop Bot';
-                priceData = [];
-                previewChart.data.datasets[0].data = priceData;
-                previewChart.update();
-                currentContracts = [];
-
-                ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
-                ws.onopen = () => {
-                    ws.send(JSON.stringify({ authorize: token }));
-                };
-                ws.onmessage = (msg) => {
-                    const data = JSON.parse(msg.data);
-                    if (data.msg_type === 'authorize') {
-                        if (data.error) {
-                            console.error('Authorization error:', data.error.message);
-                            statusTag.classList.add('error');
-                            statusTag.textContent = `Error: ${data.error.message}`;
-                            stopBot();
-                        } else {
-                            ws.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
-                            statusTag.classList.remove('not-running', 'connecting', 'error');
-                            statusTag.classList.add('running');
-                            statusTag.textContent = 'Running';
-                        }
-                    } else if (data.msg_type === 'tick') {
-                        const price = data.tick.quote;
-                        const time = data.tick.epoch * 1000;
-                        updateChart(price, time);
-                        executeStrategy(strategyBlock.element.querySelector('.strategy-select').value, symbol, stake, price, time);
-                    } else if (data.msg_type === 'proposal') {
-                        if (data.error) {
-                            console.error('Proposal error:', data.error.message);
-                        } else {
-                            ws.send(JSON.stringify({ buy: 1, proposal_id: data.proposal.id, price: data.proposal.ask_price }));
-                        }
-                    } else if (data.msg_type === 'buy') {
-                        if (data.error) {
-                            console.error('Buy error:', data.error.message);
-                            statusTag.classList.add('error');
-                            statusTag.textContent = `Error: ${data.error.message}`;
-                            stopBot();
-                        } else {
-                            console.log('Trade placed:', data.buy);
-                            currentContracts.push(data.buy.contract_id);
-                            ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: data.buy.contract_id, subscribe: 1 }));
-                        }
-                    } else if (data.msg_type === 'proposal_open_contract') {
-                        if (data.error) {
-                            console.error('Contract update error:', data.error.message);
-                        } else {
-                            const contract = data.proposal_open_contract;
-                            if (contract.is_sold) {
-                                totalTrades++;
-                                const contractProfit = contract.profit;
-                                profit += contractProfit;
-                                if (contractProfit > 0) wins++;
-                                realProfit.textContent = profit.toFixed(2);
-                                winRate.textContent = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + '%' : '0%';
-                                tradeCount.textContent = totalTrades;
-                                currentContracts = currentContracts.filter(id => id !== contract.contract_id);
-                                const commission = (contract.payout * 0.03);
-                                totalCommission += commission;
-                                commissionEarned.textContent = totalCommission.toFixed(2);
-                                updateRiskMetrics();
-                            }
-                        }
-                    } else if (data.error) {
-                        console.error('API error:', data.error.message);
-                        statusTag.classList.add('error');
-                        statusTag.textContent = `Error: ${data.error.message}`;
-                        stopBot();
-                    }
-                };
-                ws.onclose = () => {
-                    if (isRunning) setTimeout(() => startBot(symbol), 2000);
-                };
-                ws.onerror = (error) => {
-                    console.error('WebSocket error:', error);
-                    statusTag.classList.add('error');
-                    statusTag.textContent = 'Error: Connection failed';
-                    stopBot();
-                };
-            }
-
-            function stopBot() {
-                if (ws) ws.close();
-                isRunning = false;
-                statusTag.classList.remove('connecting', 'running', 'error');
-                statusTag.classList.add('not-running');
-                statusTag.textContent = 'Not Running';
-                runBtnText.textContent = 'Run Bot';
-                runButton.innerHTML = '<i class="fa-solid fa-play"></i>Run Bot';
-                priceData = generateDefaultData();
-                previewChart.data.datasets[0].data = priceData;
-                previewChart.update();
-            }
-
-            function executeStrategy(strategy, symbol, stake, price, time) {
-                let tradeType = Math.random() > 0.5 ? 'CALL' : 'PUT'; // Placeholder, refine with indicators
-                const intervalBlock = botBlocks.find(b => b.type === 'interval');
-                const levelsBlock = botBlocks.find(b => b.type === 'levels');
-                const rsiBlock = botBlocks.find(b => b.type === 'rsi');
-                const macdBlock = botBlocks.find(b => b.type === 'macd');
-                const stopLossBlock = botBlocks.find(b => b.type === 'stopLoss');
-                let shouldTrade = false;
-
-                if (strategy === 'dca' && intervalBlock) {
-                    const interval = parseInt(intervalBlock.element.querySelector('input').value) * 60 * 1000;
-                    if (!intervalBlock.lastTradeTime || time - intervalBlock.lastTradeTime >= interval) {
-                        shouldTrade = true;
-                        intervalBlock.lastTradeTime = time;
-                        tradeType = 'CALL';
-                    }
-                } else if (strategy === 'grid' && levelsBlock) {
-                    const levels = parseFloat(levelsBlock.element.querySelector('input').value) / 100;
-                    shouldTrade = true;
-                    tradeType = Math.random() > 0.5 ? 'CALL' : 'PUT';
-                } else if (strategy === 'scalping') {
-                    if (rsiBlock) {
-                        const period = parseInt(rsiBlock.element.querySelector('input').value);
-                        const rsi = calculateRSI(priceData.map(d => d.y || d.c).slice(-period));
-                        if (rsi < 30) tradeType = 'CALL';
-                        else if (rsi > 70) tradeType = 'PUT';
-                        shouldTrade = rsi < 30 || rsi > 70;
-                    } else if (macdBlock) {
-                        const [fast, slow, signal] = macdBlock.element.querySelectorAll('input').map(i => parseInt(i.value));
-                        const macd = calculateMACD(priceData.map(d => d.y || d.c).slice(-Math.max(fast, slow)), fast, slow, signal);
-                        if (macd.macd > macd.signal && priceData[priceData.length - 2].y < price) {
-                            shouldTrade = true;
-                            tradeType = 'CALL';
-                        } if (macd.macd < macd.signal && priceData[priceData.length - 2].y > price) {
-                            shouldTrade = true;
-                            tradeType = 'PUT';
-                        }
-                    } else {
-                        const prices = priceData.map(d => d.y || d.c).slice(-20);
-                        if (prices.length >= 20) {
-                            const sma5 = prices.slice(-5).reduce((a, b) => a + b, 0) / 5;
-                            const sma20 = prices.reduce((a, b) => a + b, 0) / 20;
-                            if (sma5 > sma20) {
-                                shouldTrade = true;
-                                tradeType = 'CALL';
-                            } else if (sma5 < sma20) {
-                                shouldTrade = true;
-                                tradeType = 'PUT';
-                            }
-                        }
-                    }
-                }
-
-                if (shouldTrade && stopLossBlock) {
-                    const stopLoss = parseFloat(stopLossBlock.element.querySelector('input').value);
-                    if (Math.abs((price - priceData[0].y) / priceData[0].y * 100) > stopLoss) {
-                        shouldTrade = false;
-                        alert('Stop loss triggered!');
-                        stopBot();
-                    }
-                }
-
-                if (shouldTrade) {
-                    requestTrade(symbol, stake, tradeType, price);
-                }
-            }
-
-            function calculateRSI(prices) {
-                if (prices.length < 2) return 50;
-                let gains = 0, losses = 0;
-                for (let i = 1; i < prices.length; i++) {
-                    const diff = prices[i] - prices[i-1];
-                    if (diff > 0) gains += diff;
-                    else losses += Math.abs(diff);
-                }
-                const avgGain = gains / (prices.length - 1);
-                const avgLoss = losses / (prices.length - 1);
-                return avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
-            }
-
-            function calculateMACD(prices, fast, slow, signal) {
-                const emaFast = prices.reduce((ema, price, i) => i === 0 ? price : ema + (2 / (fast + 1)) * (price - ema), prices[0]);
-                const emaSlow = prices.reduce((ema, price, i) => i === 0 ? price : ema + (2 / (slow + 1)) * (price - ema), prices[0]);
-                const macdLine = emaFast - emaSlow;
-                const signalLine = prices.slice(-signal).reduce((ema, price, i) => i === 0 ? macdLine : ema + (2 / (signal + 1)) * (macdLine - ema), macdLine);
-                return { macd: macdLine, signal: signalLine };
-            }
-
-            function requestTrade(symbol, stake, tradeType, price) {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    const proposal = {
-                        proposal: 1,
-                        amount: stake,
-                        basis: 'stake',
-                        contract_type: tradeType,
-                        currency: 'USD',
-                        symbol: symbol,
-                        duration: 1,
-                        duration_unit: 't'
-                    };
-                    ws.send(JSON.stringify(proposal));
-                }
-            }
-
-            function updateRiskMetrics() {
-                const drawdown = Math.min(0, (profit / (parseFloat(document.getElementById('user-balance').textContent.replace('$', '')) + profit)) * 100);
-                maxDrawdown.textContent = drawdown.toFixed(2) + '%';
-                riskLevel.textContent = drawdown < -5 ? 'High' : drawdown < -2 ? 'Medium' : 'Low';
-            }
-
-            document.querySelectorAll('[draggable="true"]').forEach(block => {
-                block.addEventListener('dragstart', (e) => {
-                    isDragging = true;
-                    e.dataTransfer.setData('text/plain', block.dataset.type);
-                    block.classList.add('dragging');
-                });
-                block.addEventListener('dragend', () => {
-                    block.classList.remove('dragging');
-                    isDragging = false;
-                });
-            });
-
-            botWorkspace.addEventListener('dragover', (e) => e.preventDefault());
-            botWorkspace.addEventListener('drop', (e) => {
-                e.preventDefault();
-                if (isDragging) {
-                    const type = e.dataTransfer.getData('text/plain');
-                    const newBlock = createBlock(type);
-                    const tradeParams = botWorkspace.querySelector('#tradeParams');
-                    tradeParams.appendChild(newBlock);
-                    botBlocks.push({ type, element: newBlock });
-                    updateBlocksVisibility();
-                    updatePreview();
-                }
-            });
-
-            trashCan.addEventListener('dragover', (e) => e.preventDefault());
-            trashCan.addEventListener('drop', (e) => {
-                e.preventDefault();
-                if (isDragging) {
-                    const dragged = document.querySelector('.dragging');
-                    if (dragged) {
-                        dragged.remove();
-                        botBlocks = botBlocks.filter(b => b.element !== dragged);
-                        updateBlocksVisibility();
-                        updatePreview();
-                    }
-                }
-            });
-
-            botWorkspace.addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-block')) {
-                    const block = e.target.closest('.block');
-                    block.remove();
-                    botBlocks = botBlocks.filter(b => b.element !== block);
-                    updateBlocksVisibility();
-                    updatePreview();
-                }
-                if (e.target.classList.contains('strategy-select')) {
-                    updateBlocksVisibility();
-                }
-            });
-
-            function createBlock(type) {
-                const block = document.createElement('div');
-                block.className = 'block';
-                block.draggable = true;
-                block.dataset.type = type;
-                switch (type) {
-                    case 'market':
-                        block.innerHTML = '<label>Market: </label><select class="market-select"><option>Derived</option><option>Forex</option><option>Cryptocurrencies</option><option>Commodities</option></select><select class="symbol-select"><option value="R_100">Volatility 100 Index</option><option value="frxEURUSD">EUR/USD</option><option value="frxGBPJPY">GBP/JPY</option><option value="cryBTCUSD">BTC/USD</option><option value="comGOLDUSD">Gold/USD</option><option value="R_75">Volatility 75 Index</option><option value="frxAUDUSD">AUD/USD</option><option value="cryETHUSD">ETH/USD</option><option value="comOILUSD">Oil/USD</option></select><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'strategy':
-                        block.innerHTML = '<label>Strategy: </label><select class="strategy-select"><option value="dca">DCA</option><option value="grid">Grid Trading</option><option value="scalping">Scalping</option><option value="martingale">Martingale</option><option value="hedging">Hedging</option><option value="trend">Trend Following</option><option value="mean_reversion">Mean Reversion</option></select><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'stake':
-                        block.innerHTML = '<label>Stake: </label><input type="number" value="10" min="0.35"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'interval':
-                        block.innerHTML = '<label>Interval (minutes): </label><input type="number" value="5" min="1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'levels':
-                        block.innerHTML = '<label>Price Levels (±%): </label><input type="number" value="1" min="0.5" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'rsi':
-                        block.innerHTML = '<label>RSI Period: </label><input type="number" value="14" min="2"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'macd':
-                        block.innerHTML = '<label>MACD (Fast,Slow,Signal): </label><input type="number" value="12" min="1">,<input type="number" value="26" min="1">,<input type="number" value="9" min="1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'stopLoss':
-                        block.innerHTML = '<label>Stop Loss (%): </label><input type="number" value="2" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    // New features
-                    case 'bollinger':
-                        block.innerHTML = '<label>Bollinger Bands (Period, Dev): </label><input type="number" value="20" min="2">,<input type="number" value="2" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'ma':
-                        block.innerHTML = '<label>Moving Average (Period, Type): </label><input type="number" value="50" min="1"><select><option>SMA</option><option>EMA</option></select><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'stochastic':
-                        block.innerHTML = '<label>Stochastic (K, D, Smooth): </label><input type="number" value="14" min="1">,<input type="number" value="3" min="1">,<input type="number" value="3" min="1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'takeProfit':
-                        block.innerHTML = '<label>Take Profit (%): </label><input type="number" value="5" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'trailingStop':
-                        block.innerHTML = '<label>Trailing Stop (%): </label><input type="number" value="1" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'maxTrades':
-                        block.innerHTML = '<label>Max Trades: </label><input type="number" value="10" min="1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'dailyLoss':
-                        block.innerHTML = '<label>Daily Loss Limit (%): </label><input type="number" value="5" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'positionSize':
-                        block.innerHTML = '<label>Position Sizing (% of Balance): </label><input type="number" value="1" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'tradeDirection':
-                        block.innerHTML = '<label>Trade Direction: </label><select><option>Long</option><option>Short</option><option>Both</option></select><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'contractType':
-                        block.innerHTML = '<label>Contract Type: </label><select><option>CALL</option><option>PUT</option><option>HIGH</option><option>LOW</option></select><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                    case 'durationUnit':
-                        block.innerHTML = '<label>Duration Unit: </label><select><option>t (ticks)</option><option>m (minutes)</option><option>h (hours)</option></select><i class="fas fa-trash-alt delete-block"></i>';
-                        break;
-                }
-                return block;
-            }
-
-            function updateBlocksVisibility() {
-                const strategyBlock = botBlocks.find(b => b.type === 'strategy');
-                if (strategyBlock) {
-                    const strategy = strategyBlock.element.querySelector('.strategy-select').value;
-                    stakeBlock.style.display = 'flex';
-                    intervalBlock.style.display = strategy === 'dca' ? 'flex' : 'none';
-                    levelsBlock.style.display = strategy === 'grid' ? 'flex' : 'none';
-                    rsiBlock.style.display = strategy === 'scalping' ? 'flex' : 'none';
-                    macdBlock.style.display = strategy === 'scalping' ? 'flex' : 'none';
-                    stopLossBlock.style.display = 'flex';
-                } else {
-                    stakeBlock.style.display = 'none';
-                    intervalBlock.style.display = 'none';
-                    levelsBlock.style.display = 'none';
-                    rsiBlock.style.display = 'none';
-                    macdBlock.style.display = 'none';
-                    stopLossBlock.style.display = 'none';
-                }
-            }
-
-            document.getElementById('saveToList').addEventListener('click', () => {
-                const botName = prompt('Bot Name:');
-                if (botName) {
-                    const config = {
-                        name: botName,
-                        blocks: botBlocks.map(b => ({ type: b.type, content: b.element.outerHTML })),
-                        market: document.querySelector('.market-select')?.value || 'Derived',
-                        symbol: document.querySelector('.symbol-select')?.value || 'R_100'
-                    };
-                    savedBots.push(config);
-                    localStorage.setItem('savedBots', JSON.stringify(savedBots));
-                    renderBotList();
-                    alert('Bot saved!');
-                }
-            });
-
-            document.getElementById('loadFromList').addEventListener('click', () => {
-                alert('Select a bot from the list below.');
-            });
-
-            function loadBot(config) {
-                botWorkspace.innerHTML = '<div class="block-group block-group-1" id="tradeParams"><div class="block-title">Trade Parameters</div></div><div class="bot-preview"><h3>Bot Preview</h3><p>Real Performance: <span id="realProfit">0.00</span> | Win Rate: <span id="winRate">0%</span> | Trades: <span id="tradeCount">0</span> | Commission: <span id="commissionEarned">0.00</span></p><p class="commission-note">Note: A 3% commission is applied to each trade\'s potential payout.</p><div class="backtest-form" id="backtestForm"><label for="backtestPeriod">Backtest Period (minutes):</label><input type="number" id="backtestPeriod" min="1" value="10" step="1"><button type="button" class="btn btn-secondary" id="runBacktest">Run Backtest</button></div><canvas id="previewChart"></canvas></div><div class="risk-section"><h4>Risk Management</h4><p>Max Drawdown: <span id="maxDrawdown">0.00%</span> | Risk Level: <span id="riskLevel">Low</span></p></div>';
-                botBlocks = [];
-                config.blocks.forEach(blockData => {
-                    const temp = document.createElement('div');
-                    temp.innerHTML = blockData.content;
-                    const block = temp.firstChild;
-                    block.draggable = true;
-                    block.addEventListener('click', (e) => {
-                        if (e.target.classList.contains('delete-block')) block.remove();
-                    });
-                    botWorkspace.querySelector('#tradeParams').appendChild(block);
-                    botBlocks.push({ type: blockData.type, element: block });
-                });
-                document.querySelector('.market-select').value = config.market;
-                document.querySelector('.symbol-select').value = config.symbol;
-                initializeChart();
-                updateBlocksVisibility();
-                updatePreview();
-                alert('Bot loaded!');
-            }
-
-            runButton.addEventListener('click', () => {
-                if (isRunning) {
-                    stopBot();
-                } else {
-                    const marketBlock = botBlocks.find(b => b.type === 'market');
-                    const strategyBlock = botBlocks.find(b => b.type === 'strategy');
-                    if (!marketBlock || !strategyBlock) {
-                        alert('Please add market and strategy blocks to run the bot.');
-                        return;
-                    }
-                    const symbol = marketBlock.element.querySelector('.symbol-select').value;
-                    startBot(symbol);
-                }
-            });
-
-            document.getElementById('playBtn').addEventListener('click', () => {
-                const marketBlock = botBlocks.find(b => b.type === 'market');
-                const strategyBlock = botBlocks.find(b => b.type === 'strategy');
-                if (!marketBlock || !strategyBlock) {
-                    alert('Please add market and strategy blocks to run the bot.');
-                    return;
-                }
-                const symbol = marketBlock.element.querySelector('.symbol-select').value;
-                startBot(symbol);
-            });
-
-            document.getElementById('pauseBtn').addEventListener('click', () => {
-                if (isRunning) {
-                    statusTag.classList.remove('running');
-                    statusTag.classList.add('not-running');
-                    statusTag.textContent = 'Paused';
-                }
-            });
-
-            document.getElementById('stopBtn').addEventListener('click', () => {
-                stopBot();
-            });
-
-            document.querySelector('.action-btn[title="Clear Workspace"]').addEventListener('click', () => {
-                if (confirm('Clear all blocks?')) {
-                    botWorkspace.innerHTML = '<div class="block-group block-group-1" id="tradeParams"><div class="block-title">Trade Parameters</div></div><div class="bot-preview"><h3>Bot Preview</h3><p>Real Performance: <span id="realProfit">0.00</span> | Win Rate: <span id="winRate">0%</span> | Trades: <span id="tradeCount">0</span> | Commission: <span id="commissionEarned">0.00</span></p><p class="commission-note">Note: A 3% commission is applied to each trade\'s potential payout.</p><div class="backtest-form" id="backtestForm"><label for="backtestPeriod">Backtest Period (minutes):</label><input type="number" id="backtestPeriod" min="1" value="10" step="1"><button type="button" class="btn btn-secondary" id="runBacktest">Run Backtest</button></div><canvas id="previewChart"></canvas></div><div class="risk-section"><h4>Risk Management</h4><p>Max Drawdown: <span id="maxDrawdown">0.00%</span> | Risk Level: <span id="riskLevel">Low</span></p></div>';
-                    botBlocks = [];
-                    initializeChart();
-                    updatePreview();
-                }
-            });
-
-            document.querySelector('.action-btn[title="New Bot"]').addEventListener('click', () => {
-                if (confirm('Start new bot?')) {
-                    document.querySelector('.action-btn[title="Clear Workspace"]').click();
-                }
-            });
-
-            chartTypeSelect.addEventListener('change', () => {
-                currentChartType = chartTypeSelect.value;
-                previewChart.destroy();
-                initializeChart();
-                if (isRunning) {
-                    const marketBlock = botBlocks.find(b => b.type === 'market');
-                    if (marketBlock) startBot(marketBlock.element.querySelector('.symbol-select').value);
-                }
-            });
-
-            runBacktestBtn.addEventListener('click', () => {
-                const marketBlock = botBlocks.find(b => b.type === 'market');
-                const strategyBlock = botBlocks.find(b => b.type === 'strategy');
-                const stakeBlock = botBlocks.find(b => b.type === 'stake');
-                if (!marketBlock || !strategyBlock || !stakeBlock) {
-                    alert('Please configure market, strategy, and stake for backtesting.');
-                    return;
-                }
-                const symbol = marketBlock.element.querySelector('.symbol-select').value;
-                const strategy = strategyBlock.element.querySelector('.strategy-select').value;
-                const stake = parseFloat(stakeBlock.element.querySelector('input').value);
-                const period = parseInt(document.getElementById('backtestPeriod').value) * 60 * 1000;
-                runBacktest(symbol, strategy, stake, period);
-            });
-
-            function runBacktest(symbol, strategy, stake, period) {
-                const token = sessionStorage.getItem('deriv_token');
-                if (!token) {
-                    alert('Please log in to Deriv for backtesting.');
-                    return;
-                }
-                let backtestWs = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
-                backtestWs.onopen = () => {
-                    backtestWs.send(JSON.stringify({ authorize: token }));
-                };
-                backtestWs.onmessage = (msg) => {
-                    const data = JSON.parse(msg.data);
-                    if (data.msg_type === 'authorize') {
-                        if (data.error) {
-                            console.error('Authorization error:', data.error.message);
-                            backtestWs.close();
-                        } else {
-                            const start = Math.floor((Date.now() - period) / 1000);
-                            backtestWs.send(JSON.stringify({ ticks_history: symbol, end: 'latest', start: start, count: 0, style: 'ticks' }));
-                        }
-                    } else if (data.msg_type === 'history') {
-                        backtestWs.close();
-                        processBacktestData(strategy, stake, data.history);
-                    }
-                };
-            }
-
-            // Initialize
-            initializeChart();
-            const hamburger = document.querySelector('.hamburger');
-            const navLinks = document.querySelector('.nav-links-container');
-            if (hamburger) {
-                hamburger.addEventListener('click', () => {
-                    navLinks.classList.toggle('active');
-                    const icon = hamburger.querySelector('i');
-                    icon.classList.toggle('fa-bars');
-                    icon.classList.toggle('fa-times');
-                });
             }
         });
-    </script>
+        updateChartTheme(document.body.dataset.theme || 'light');
+    }
+
+    function generateDefaultData() {
+        const now = Date.now();
+        const defaultData = [];
+        for (let i = 0; i < 10; i++) {
+            const time = now - (9 - i) * 60000;
+            const basePrice = 1000 + Math.random() * 100;
+            if (currentChartType === 'candlestick') {
+                defaultData.push({
+                    x: time,
+                    o: basePrice,
+                    h: basePrice + Math.random() * 10,
+                    l: basePrice - Math.random() * 10,
+                    c: basePrice + (Math.random() - 0.5) * 10
+                });
+            } else {
+                defaultData.push({ x: time, y: basePrice });
+            }
+        }
+        return defaultData;
+    }
+
+    function updateChart(price, time, isCandle = false) {
+        if (currentChartType === 'candlestick') {
+            if (isCandle) {
+                priceData.push(price);
+            } else {
+                const lastCandle = priceData[priceData.length - 1];
+                const parsedPrice = parseFloat(price);
+                if (lastCandle && time - lastCandle.x < 60000) {
+                    lastCandle.c = parsedPrice;
+                    lastCandle.h = Math.max(lastCandle.h, parsedPrice);
+                    lastCandle.l = Math.min(lastCandle.l, parsedPrice);
+                } else {
+                    priceData.push({
+                        x: time,
+                        o: lastCandle ? lastCandle.c : parsedPrice,
+                        h: parsedPrice,
+                        l: parsedPrice,
+                        c: parsedPrice
+                    });
+                }
+            }
+        } else {
+            priceData.push({ x: time, y: parseFloat(price) });
+        }
+        if (priceData.length > 100) priceData.shift();
+        previewChart.data.datasets[0].data = priceData;
+        previewChart.update('none');
+    }
+
+    function startBot(symbol, stake, strategy) {
+        const token = sessionStorage.getItem('deriv_token');
+        console.log('Starting bot with token:', token ? 'Token present' : 'No token');
+        if (!token) {
+            alert('Please log in to Deriv to run the bot.');
+            stopBot();
+            return;
+        }
+        const balance = parseFloat(userBalance.textContent.replace('$', '')) || 0;
+        if (stake > balance) {
+            alert('Insufficient balance for this stake.');
+            stopBot();
+            return;
+        }
+        isRunning = true;
+        statusTag.classList.remove('not-running', 'running', 'error');
+        statusTag.classList.add('connecting');
+        statusTag.textContent = 'Connecting...';
+        runBtnText.textContent = 'Stop Bot';
+        runButton.innerHTML = '<i class="fa-solid fa-stop"></i>Stop Bot';
+        priceData = [];
+        previewChart.data.datasets[0].data = priceData;
+        previewChart.update();
+        currentContracts = [];
+
+        ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+        ws.onopen = () => {
+            console.log('WebSocket opened');
+            ws.send(JSON.stringify({ authorize: token }));
+        };
+        ws.onmessage = (msg) => {
+            const data = JSON.parse(msg.data);
+            console.log('WebSocket message:', data);
+            if (data.msg_type === 'authorize') {
+                if (data.error) {
+                    console.error('Authorization error:', data.error.message);
+                    statusTag.classList.add('error');
+                    statusTag.textContent = `Error: ${data.error.message}`;
+                    stopBot();
+                } else {
+                    ws.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
+                    statusTag.classList.remove('connecting');
+                    statusTag.classList.add('running');
+                    statusTag.textContent = 'Running';
+                }
+            } else if (data.msg_type === 'tick') {
+                const price = data.tick.quote;
+                const time = data.tick.epoch * 1000;
+                updateChart(price, time);
+                executeStrategy(strategy, symbol, stake, price, time);
+            } else if (data.msg_type === 'proposal') {
+                if (data.error) {
+                    console.error('Proposal error:', data.error.message);
+                } else {
+                    ws.send(JSON.stringify({ buy: 1, proposal_id: data.proposal.id, price: data.proposal.ask_price }));
+                }
+            } else if (data.msg_type === 'buy') {
+                if (data.error) {
+                    console.error('Buy error:', data.error.message);
+                } else {
+                    console.log('Trade placed:', data.buy);
+                    currentContracts.push(data.buy.contract_id);
+                    ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: data.buy.contract_id, subscribe: 1 }));
+                    updateTradeLog(`Trade placed: ${data.buy.contract_type} on ${symbol} for $${data.buy.buy_price}`);
+                }
+            } else if (data.msg_type === 'proposal_open_contract') {
+                if (data.error) {
+                    console.error('Contract update error:', data.error.message);
+                } else {
+                    const contract = data.proposal_open_contract;
+                    if (contract.is_sold) {
+                        totalTrades++;
+                        const contractProfit = contract.profit;
+                        const commission = contract.payout * 0.03;
+                        const netProfit = contractProfit - commission;
+                        profit += netProfit;
+                        totalCommission += commission;
+                        if (contractProfit > 0) wins++;
+                        realProfit.textContent = profit.toFixed(2);
+                        winRate.textContent = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + '%' : '0%';
+                        tradeCount.textContent = totalTrades;
+                        commissionEarned.textContent = totalCommission.toFixed(2);
+                        currentContracts = currentContracts.filter(id => id !== contract.contract_id);
+                        updateTradeLog(`Trade closed: ${contract.contract_type} on ${symbol}, Profit: $${netProfit.toFixed(2)}, Commission: $${commission.toFixed(2)}`);
+                        updateRiskMetrics();
+                    }
+                }
+            } else if (data.error) {
+                console.error('API error:', data.error.message);
+                statusTag.classList.add('error');
+                statusTag.textContent = `Error: ${data.error.message}`;
+                stopBot();
+            }
+        };
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            statusTag.classList.add('error');
+            statusTag.textContent = 'Error: Connection failed';
+            stopBot();
+        };
+        ws.onclose = () => {
+            console.log('WebSocket closed');
+            if (isRunning) setTimeout(() => startBot(symbol, stake, strategy), 2000);
+        };
+    }
+
+    function stopBot() {
+        if (ws) ws.close();
+        ws = null;
+        isRunning = false;
+        statusTag.classList.remove('connecting', 'running', 'error');
+        statusTag.classList.add('not-running');
+        statusTag.textContent = 'Not Running';
+        runBtnText.textContent = 'Run Bot';
+        runButton.innerHTML = '<i class="fa-solid fa-play"></i>Run Bot';
+        priceData = generateDefaultData();
+        previewChart.data.datasets[0].data = priceData;
+        previewChart.update();
+    }
+
+    function updateTradeLog(message) {
+        const tradeLog = document.querySelector('#tradeLog ul');
+        const li = document.createElement('li');
+        li.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+        tradeLog.prepend(li);
+        tradeHistory.push(message);
+        if (tradeLog.children.length > 10) tradeLog.removeChild(tradeLog.lastChild);
+    }
+
+    function executeStrategy(strategy, symbol, stake, price, time) {
+        let tradeType = contractTypeBlock ? contractTypeBlock.querySelector('select').value : 'CALL';
+        let shouldTrade = false;
+
+        const intervalBlockData = botBlocks.find(b => b.type === 'interval');
+        const levelsBlockData = botBlocks.find(b => b.type === 'levels');
+        const rsiBlockData = botBlocks.find(b => b.type === 'rsi');
+        const macdBlockData = botBlocks.find(b => b.type === 'macd');
+        const stopLossBlockData = botBlocks.find(b => b.type === 'stopLoss');
+        const bollingerBlockData = botBlocks.find(b => b.type === 'bollinger');
+        const maBlockData = botBlocks.find(b => b.type === 'ma');
+        const stochasticBlockData = botBlocks.find(b => b.type === 'stochastic');
+        const takeProfitBlockData = botBlocks.find(b => b.type === 'takeProfit');
+        const maxTradesBlockData = botBlocks.find(b => b.type === 'maxTrades');
+        const dailyLossBlockData = botBlocks.find(b => b.type === 'dailyLoss');
+
+        if (maxTradesBlockData && totalTrades >= parseInt(maxTradesBlockData.element.querySelector('input').value)) {
+            alert('Max trades limit reached!');
+            stopBot();
+            return;
+        }
+
+        if (dailyLossBlockData) {
+            const dailyLoss = parseFloat(dailyLossBlockData.element.querySelector('input').value);
+            const currentLoss = Math.min(0, (profit / (parseFloat(userBalance.textContent.replace('$', '')) + profit)) * 100);
+            if (currentLoss < -dailyLoss) {
+                alert('Daily loss limit reached!');
+                stopBot();
+                return;
+            }
+        }
+
+        if (takeProfitBlockData && profit >= parseFloat(takeProfitBlockData.element.querySelector('input').value)) {
+            alert('Take profit target reached!');
+            stopBot();
+            return;
+        }
+
+        if (strategy === 'dca' && intervalBlockData) {
+            const interval = parseInt(intervalBlockData.element.querySelector('input').value) * 60 * 1000;
+            if (!intervalBlockData.lastTradeTime || time - intervalBlockData.lastTradeTime >= interval) {
+                shouldTrade = true;
+                intervalBlockData.lastTradeTime = time;
+            }
+        } else if (strategy === 'grid' && levelsBlockData) {
+            const levels = parseFloat(levelsBlockData.element.querySelector('input').value) / 100;
+            shouldTrade = Math.random() < 0.5;
+        } else if (strategy === 'scalping') {
+            if (rsiBlockData) {
+                const period = parseInt(rsiBlockData.element.querySelector('input').value);
+                const rsi = calculateRSI(priceData.map(d => d.y || d.c).slice(-period));
+                if (rsi < 30) tradeType = 'CALL';
+                else if (rsi > 70) tradeType = 'PUT';
+                shouldTrade = rsi < 30 || rsi > 70;
+            } else if (macdBlockData) {
+                const [fast, slow, signal] = macdBlockData.element.querySelectorAll('input').map(i => parseInt(i.value));
+                const macd = calculateMACD(priceData.map(d => d.y || d.c).slice(-Math.max(fast, slow)), fast, slow, signal);
+                if (macd.macd > macd.signal && priceData[priceData.length - 2].y < price) {
+                    shouldTrade = true;
+                    tradeType = 'CALL';
+                } else if (macd.macd < macd.signal && priceData[priceData.length - 2].y > price) {
+                    shouldTrade = true;
+                    tradeType = 'PUT';
+                }
+            } else if (bollingerBlockData) {
+                const [period, dev] = bollingerBlockData.element.querySelectorAll('input').map(i => parseFloat(i.value));
+                const bollinger = calculateBollingerBands(priceData.map(d => d.y || d.c).slice(-period), period, dev);
+                if (price < bollinger.lower) {
+                    shouldTrade = true;
+                    tradeType = 'CALL';
+                } else if (price > bollinger.upper) {
+                    shouldTrade = true;
+                    tradeType = 'PUT';
+                }
+            } else if (maBlockData) {
+                const period = parseInt(maBlockData.element.querySelector('input').value);
+                const type = maBlockData.element.querySelector('select').value;
+                const ma = calculateMA(priceData.map(d => d.y || d.c).slice(-period), period, type);
+                if (price > ma && priceData[priceData.length - 2].y < ma) {
+                    shouldTrade = true;
+                    tradeType = 'CALL';
+                } else if (price < ma && priceData[priceData.length - 2].y > ma) {
+                    shouldTrade = true;
+                    tradeType = 'PUT';
+                }
+            } else if (stochasticBlockData) {
+                const [k, d, smooth] = stochasticBlockData.element.querySelectorAll('input').map(i => parseInt(i.value));
+                const stochastic = calculateStochastic(priceData.map(d => d.y || d.c).slice(-k), k, d, smooth);
+                if (stochastic.k < 20 && stochastic.d < 20) {
+                    shouldTrade = true;
+                    tradeType = 'CALL';
+                } else if (stochastic.k > 80 && stochastic.d > 80) {
+                    shouldTrade = true;
+                    tradeType = 'PUT';
+                }
+            } else {
+                shouldTrade = Math.random() < 0.5;
+            }
+        } else if (strategy === 'martingale') {
+            shouldTrade = totalTrades > 0 && tradeHistory[tradeHistory.length - 1].includes('Profit: -$');
+            stake = shouldTrade ? stake * 2 : stake;
+        } else if (strategy === 'hedging') {
+            shouldTrade = currentContracts.length > 0;
+            tradeType = tradeType === 'CALL' ? 'PUT' : 'CALL';
+        } else if (strategy === 'trend') {
+            const prices = priceData.map(d => d.y || d.c).slice(-20);
+            if (prices.length >= 20) {
+                const sma5 = prices.slice(-5).reduce((a, b) => a + b, 0) / 5;
+                const sma20 = prices.reduce((a, b) => a + b, 0) / 20;
+                if (sma5 > sma20) {
+                    shouldTrade = true;
+                    tradeType = 'CALL';
+                } else if (sma5 < sma20) {
+                    shouldTrade = true;
+                    tradeType = 'PUT';
+                }
+            }
+        } else if (strategy === 'mean_reversion') {
+            if (maBlockData) {
+                const period = parseInt(maBlockData.element.querySelector('input').value);
+                const ma = calculateMA(priceData.map(d => d.y || d.c).slice(-period), period, 'SMA');
+                if (price < ma * 0.95) {
+                    shouldTrade = true;
+                    tradeType = 'CALL';
+                } else if (price > ma * 1.05) {
+                    shouldTrade = true;
+                    tradeType = 'PUT';
+                }
+            }
+        }
+
+        if (shouldTrade && stopLossBlockData) {
+            const stopLoss = parseFloat(stopLossBlockData.element.querySelector('input').value);
+            if (Math.abs((price - priceData[0].y) / priceData[0].y * 100) > stopLoss) {
+                alert('Stop loss triggered!');
+                stopBot();
+                return;
+            }
+        }
+
+        if (shouldTrade) {
+            const durationUnit = durationUnitBlock ? durationUnitBlock.querySelector('select').value : 't';
+            const duration = durationUnit === 't' ? 5 : durationUnit === 'm' ? 1 : 1;
+            requestTrade(symbol, stake, tradeType, duration, durationUnit);
+        }
+    }
+
+    function calculateRSI(prices) {
+        if (prices.length < 2) return 50;
+        let gains = 0, losses = 0;
+        for (let i = 1; i < prices.length; i++) {
+            const diff = prices[i] - prices[i-1];
+            if (diff > 0) gains += diff;
+            else losses += Math.abs(diff);
+        }
+        const avgGain = gains / (prices.length - 1);
+        const avgLoss = losses / (prices.length - 1);
+        return avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+    }
+
+    function calculateMACD(prices, fast, slow, signal) {
+        const emaFast = prices.reduce((ema, price, i) => i === 0 ? price : ema + (2 / (fast + 1)) * (price - ema), prices[0]);
+        const emaSlow = prices.reduce((ema, price, i) => i === 0 ? price : ema + (2 / (slow + 1)) * (price - ema), prices[0]);
+        const macdLine = emaFast - emaSlow;
+        const signalLine = prices.slice(-signal).reduce((ema, price, i) => i === 0 ? macdLine : ema + (2 / (signal + 1)) * (macdLine - ema), macdLine);
+        return { macd: macdLine, signal: signalLine };
+    }
+
+    function calculateBollingerBands(prices, period, dev) {
+        const sma = prices.reduce((a, b) => a + b, 0) / prices.length;
+        const stdDev = Math.sqrt(prices.reduce((a, b) => a + Math.pow(b - sma, 2), 0) / prices.length);
+        return { middle: sma, upper: sma + dev * stdDev, lower: sma - dev * stdDev };
+    }
+
+    function calculateMA(prices, period, type) {
+        if (type === 'EMA') {
+            return prices.reduce((ema, price, i) => i === 0 ? price : ema + (2 / (period + 1)) * (price - ema), prices[0]);
+        }
+        return prices.reduce((a, b) => a + b, 0) / prices.length;
+    }
+
+    function calculateStochastic(prices, k, d, smooth) {
+        const recent = prices.slice(-k);
+        const current = recent[recent.length - 1];
+        const lowest = Math.min(...recent);
+        const highest = Math.max(...recent);
+        const kValue = ((current - lowest) / (highest - lowest)) * 100;
+        return { k: kValue, d: kValue }; // Simplified for demo
+    }
+
+    function requestTrade(symbol, stake, tradeType, duration, durationUnit) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const proposal = {
+                proposal: 1,
+                amount: stake,
+                basis: 'stake',
+                contract_type: tradeType,
+                currency: 'USD',
+                symbol: symbol,
+                duration: duration,
+                duration_unit: durationUnit
+            };
+            ws.send(JSON.stringify(proposal));
+        }
+    }
+
+    function updateRiskMetrics() {
+        const drawdown = Math.min(0, (profit / (parseFloat(userBalance.textContent.replace('$', '')) + profit)) * 100);
+        maxDrawdown.textContent = drawdown.toFixed(2) + '%';
+        riskLevel.textContent = drawdown < -5 ? 'High' : drawdown < -2 ? 'Medium' : 'Low';
+    }
+
+    document.querySelectorAll('[draggable="true"]').forEach(block => {
+        block.addEventListener('dragstart', (e) => {
+            isDragging = true;
+            e.dataTransfer.setData('text/plain', block.dataset.type);
+            block.classList.add('dragging');
+        });
+        block.addEventListener('dragend', () => {
+            block.classList.remove('dragging');
+            isDragging = false;
+        });
+    });
+
+    botWorkspace.addEventListener('dragover', (e) => e.preventDefault());
+    botWorkspace.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (isDragging) {
+            const type = e.dataTransfer.getData('text/plain');
+            const newBlock = createBlock(type);
+            const tradeParams = botWorkspace.querySelector('#tradeParams');
+            tradeParams.appendChild(newBlock);
+            botBlocks.push({ type, element: newBlock });
+            updateBlocksVisibility();
+        }
+    });
+
+    trashCan.addEventListener('dragover', (e) => e.preventDefault());
+    trashCan.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (isDragging) {
+            const dragged = document.querySelector('.dragging');
+            if (dragged) {
+                dragged.remove();
+                botBlocks = botBlocks.filter(b => b.element !== dragged);
+                updateBlocksVisibility();
+            }
+        }
+    });
+
+    botWorkspace.addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-block')) {
+            const block = e.target.closest('.block');
+            block.remove();
+            botBlocks = botBlocks.filter(b => b.element !== block);
+            updateBlocksVisibility();
+        }
+        if (e.target.classList.contains('strategy-select')) {
+            updateBlocksVisibility();
+        }
+    });
+
+    function createBlock(type) {
+        const block = document.createElement('div');
+        block.className = 'block';
+        block.draggable = true;
+        block.dataset.type = type;
+        switch (type) {
+            case 'market':
+                block.innerHTML = '<label>Market: </label><select class="market-select"><option>Derived</option><option>Forex</option><option>Cryptocurrencies</option><option>Commodities</option></select><select class="symbol-select"><option value="R_100">Volatility 100 Index</option><option value="frxEURUSD">EUR/USD</option><option value="frxGBPJPY">GBP/JPY</option><option value="cryBTCUSD">BTC/USD</option><option value="comGOLDUSD">Gold/USD</option><option value="R_75">Volatility 75 Index</option><option value="frxAUDUSD">AUD/USD</option><option value="cryETHUSD">ETH/USD</option><option value="comOILUSD">Oil/USD</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'strategy':
+                block.innerHTML = '<label>Strategy: </label><select class="strategy-select"><option value="dca">DCA</option><option value="grid">Grid Trading</option><option value="scalping">Scalping</option><option value="martingale">Martingale</option><option value="hedging">Hedging</option><option value="trend">Trend Following</option><option value="mean_reversion">Mean Reversion</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'stake':
+                block.innerHTML = '<label>Stake: </label><input type="number" value="10" min="0.35"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'interval':
+                block.innerHTML = '<label>Interval (minutes): </label><input type="number" value="5" min="1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'levels':
+                block.innerHTML = '<label>Price Levels (±%): </label><input type="number" value="1" min="0.5" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'rsi':
+                block.innerHTML = '<label>RSI Period: </label><input type="number" value="14" min="2"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'macd':
+                block.innerHTML = '<label>MACD (Fast,Slow,Signal): </label><input type="number" value="12" min="1">,<input type="number" value="26" min="1">,<input type="number" value="9" min="1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'stopLoss':
+                block.innerHTML = '<label>Stop Loss (%): </label><input type="number" value="2" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'bollinger':
+                block.innerHTML = '<label>Bollinger Bands (Period, Dev): </label><input type="number" value="20" min="2">,<input type="number" value="2" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'ma':
+                block.innerHTML = '<label>Moving Average (Period, Type): </label><input type="number" value="50" min="1"><select><option>SMA</option><option>EMA</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'stochastic':
+                block.innerHTML = '<label>Stochastic (K, D, Smooth): </label><input type="number" value="14" min="1">,<input type="number" value="3" min="1">,<input type="number" value="3" min="1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'takeProfit':
+                block.innerHTML = '<label>Take Profit (%): </label><input type="number" value="5" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'trailingStop':
+                block.innerHTML = '<label>Trailing Stop (%): </label><input type="number" value="1" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'maxTrades':
+                block.innerHTML = '<label>Max Trades: </label><input type="number" value="10" min="1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'dailyLoss':
+                block.innerHTML = '<label>Daily Loss Limit (%): </label><input type="number" value="5" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'positionSize':
+                block.innerHTML = '<label>Position Sizing (% of Balance): </label><input type="number" value="1" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'tradeDirection':
+                block.innerHTML = '<label>Trade Direction: </label><select><option>Long</option><option>Short</option><option>Both</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'contractType':
+                block.innerHTML = '<label>Contract Type: </label><select><option>CALL</option><option>PUT</option><option>HIGH</option><option>LOW</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+            case 'durationUnit':
+                block.innerHTML = '<label>Duration Unit: </label><select><option>t (ticks)</option><option>m (minutes)</option><option>h (hours)</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                break;
+        }
+        return block;
+    }
+
+    function updateBlocksVisibility() {
+        const strategyBlock = botBlocks.find(b => b.type === 'strategy');
+        if (strategyBlock) {
+            const strategy = strategyBlock.element.querySelector('.strategy-select').value;
+            stakeBlock.style.display = 'flex';
+            intervalBlock.style.display = strategy === 'dca' ? 'flex' : 'none';
+            levelsBlock.style.display = strategy === 'grid' ? 'flex' : 'none';
+            rsiBlock.style.display = strategy === 'scalping' ? 'flex' : 'none';
+            macdBlock.style.display = strategy === 'scalping' ? 'flex' : 'none';
+            bollingerBlock.style.display = strategy === 'scalping' ? 'flex' : 'none';
+            maBlock.style.display = strategy === 'scalping' || strategy === 'trend' || strategy === 'mean_reversion' ? 'flex' : 'none';
+            stochasticBlock.style.display = strategy === 'scalping' ? 'flex' : 'none';
+            stopLossBlock.style.display = 'flex';
+            takeProfitBlock.style.display = 'flex';
+            trailingStopBlock.style.display = 'flex';
+            maxTradesBlock.style.display = 'flex';
+            dailyLossBlock.style.display = 'flex';
+            positionSizeBlock.style.display = 'flex';
+            tradeDirectionBlock.style.display = 'flex';
+            contractTypeBlock.style.display = 'flex';
+            durationUnitBlock.style.display = 'flex';
+        } else {
+            stakeBlock.style.display = 'none';
+            intervalBlock.style.display = 'none';
+            levelsBlock.style.display = 'none';
+            rsiBlock.style.display = 'none';
+            macdBlock.style.display = 'none';
+            bollingerBlock.style.display = 'none';
+            maBlock.style.display = 'none';
+            stochasticBlock.style.display = 'none';
+            stopLossBlock.style.display = 'none';
+            takeProfitBlock.style.display = 'none';
+            trailingStopBlock.style.display = 'none';
+            maxTradesBlock.style.display = 'none';
+            dailyLossBlock.style.display = 'none';
+            positionSizeBlock.style.display = 'none';
+            tradeDirectionBlock.style.display = 'none';
+            contractTypeBlock.style.display = 'none';
+            durationUnitBlock.style.display = 'none';
+        }
+    }
+
+    document.getElementById('saveToList').addEventListener('click', () => {
+        const botName = prompt('Bot Name:');
+        if (botName) {
+            const config = {
+                name: botName,
+                blocks: botBlocks.map(b => ({ type: b.type, content: b.element.outerHTML })),
+                market: document.querySelector('.market-select')?.value || 'Derived',
+                symbol: document.querySelector('.symbol-select')?.value || 'R_100'
+            };
+            savedBots.push(config);
+            localStorage.setItem('savedBots', JSON.stringify(savedBots));
+            renderBotList();
+            alert('Bot saved!');
+        }
+    });
+
+    document.getElementById('loadFromList').addEventListener('click', () => {
+        alert('Select a bot from the list below.');
+    });
+
+    function loadBot(config) {
+        botWorkspace.innerHTML = '<div class="block-group block-group-1" id="tradeParams"><div class="block-title">Trade Parameters</div></div><div class="bot-preview"><h3>Bot Preview</h3><p>Real Performance: <span id="realProfit">0.00</span> | Win Rate: <span id="winRate">0%</span> | Trades: <span id="tradeCount">0</span> | Commission: <span id="commissionEarned">0.00</span></p><p class="commission-note">Note: A 3% commission is applied to each trade\'s potential payout.</p><div class="backtest-form" id="backtestForm"><label for="backtestPeriod">Backtest Period (minutes):</label><input type="number" id="backtestPeriod" min="1" value="10" step="1"><label for="backtestRisk">Simulate Risk (%):</label><input type="number" id="backtestRisk" min="0.1" value="1" step="0.1"><button type="button" class="btn btn-secondary" id="runBacktest">Run Backtest</button></div><canvas id="previewChart"></canvas><div class="performance-metrics"><p>Sharpe Ratio: <span id="sharpeRatio">0.00</span> | Max Drawdown: <span id="maxDrawdown">0.00%</span></p></div><div class="trade-log" id="tradeLog"><h4>Trade Log</h4><ul></ul></div></div><div class="risk-section"><h4>Risk Management</h4><p>Max Drawdown: <span id="maxDrawdown">0.00%</span> | Risk Level: <span id="riskLevel">Low</span></p></div>';
+        botBlocks = [];
+        config.blocks.forEach(blockData => {
+            const temp = document.createElement('div');
+            temp.innerHTML = blockData.content;
+            const block = temp.firstChild;
+            block.draggable = true;
+            block.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-block')) block.remove();
+            });
+            botWorkspace.querySelector('#tradeParams').appendChild(block);
+            botBlocks.push({ type: blockData.type, element: block });
+        });
+        document.querySelector('.market-select').value = config.market;
+        document.querySelector('.symbol-select').value = config.symbol;
+        initializeChart();
+        updateBlocksVisibility();
+        alert('Bot loaded!');
+    }
+
+    runButton.addEventListener('click', () => {
+        console.log('Run button clicked');
+        if (isRunning) {
+            stopBot();
+        } else {
+            const marketBlock = botBlocks.find(b => b.type === 'market');
+            const strategyBlock = botBlocks.find(b => b.type === 'strategy');
+            const stakeBlock = botBlocks.find(b => b.type === 'stake');
+            if (!marketBlock || !strategyBlock || !stakeBlock) {
+                alert('Please add Market, Strategy, and Stake blocks.');
+                return;
+            }
+            const symbol = marketBlock.element.querySelector('.symbol-select').value;
+            const stake = parseFloat(stakeBlock.element.querySelector('input').value);
+            const strategy = strategyBlock.element.querySelector('.strategy-select').value;
+            startBot(symbol, stake, strategy);
+        }
+    });
+
+    document.getElementById('playBtn').addEventListener('click', () => {
+        console.log('Play button clicked');
+        const marketBlock = botBlocks.find(b => b.type === 'market');
+        const strategyBlock = botBlocks.find(b => b.type === 'strategy');
+        const stakeBlock = botBlocks.find(b => b.type === 'stake');
+        if (!marketBlock || !strategyBlock || !stakeBlock) {
+            alert('Please add Market, Strategy, and Stake blocks.');
+            return;
+        }
+        const symbol = marketBlock.element.querySelector('.symbol-select').value;
+        const stake = parseFloat(stakeBlock.element.querySelector('input').value);
+        const strategy = strategyBlock.element.querySelector('.strategy-select').value;
+        startBot(symbol, stake, strategy);
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+        if (isRunning) {
+            statusTag.classList.remove('running');
+            statusTag.classList.add('not-running');
+            statusTag.textContent = 'Paused';
+        }
+    });
+
+    document.getElementById('stopBtn').addEventListener('click', () => {
+        stopBot();
+    });
+
+    document.querySelector('.action-btn[title="Clear Workspace"]').addEventListener('click', () => {
+        if (confirm('Clear all blocks?')) {
+            botWorkspace.innerHTML = '<div class="block-group block-group-1" id="tradeParams"><div class="block-title">Trade Parameters</div></div><div class="bot-preview"><h3>Bot Preview</h3><p>Real Performance: <span id="realProfit">0.00</span> | Win Rate: <span id="winRate">0%</span> | Trades: <span id="tradeCount">0</span> | Commission: <span id="commissionEarned">0.00</span></p><p class="commission-note">Note: A 3% commission is applied to each trade\'s potential payout.</p><div class="backtest-form" id="backtestForm"><label for="backtestPeriod">Backtest Period (minutes):</label><input type="number" id="backtestPeriod" min="1" value="10" step="1"><label for="backtestRisk">Simulate Risk (%):</label><input type="number" id="backtestRisk" min="0.1" value="1" step="0.1"><button type="button" class="btn btn-secondary" id="runBacktest">Run Backtest</button></div><canvas id="previewChart"></canvas><div class="performance-metrics"><p>Sharpe Ratio: <span id="sharpeRatio">0.00</span> | Max Drawdown: <span id="maxDrawdown">0.00%</span></p></div><div class="trade-log" id="tradeLog"><h4>Trade Log</h4><ul></ul></div></div><div class="risk-section"><h4>Risk Management</h4><p>Max Drawdown: <span id="maxDrawdown">0.00%</span> | Risk Level: <span id="riskLevel">Low</span></p></div>';
+            botBlocks = [];
+            initializeChart();
+        }
+    });
+
+    document.querySelector('.action-btn[title="New Bot"]').addEventListener('click', () => {
+        if (confirm('Start new bot?')) {
+            document.querySelector('.action-btn[title="Clear Workspace"]').click();
+        }
+    });
+
+    chartTypeSelect.addEventListener('change', () => {
+        currentChartType = chartTypeSelect.value;
+        previewChart.destroy();
+        initializeChart();
+        if (isRunning) {
+            const marketBlock = botBlocks.find(b => b.type === 'market');
+            const stakeBlock = botBlocks.find(b => b.type === 'stake');
+            const strategyBlock = botBlocks.find(b => b.type === 'strategy');
+            if (marketBlock && stakeBlock && strategyBlock) {
+                startBot(
+                    marketBlock.element.querySelector('.symbol-select').value,
+                    parseFloat(stakeBlock.element.querySelector('input').value),
+                    strategyBlock.element.querySelector('.strategy-select').value
+                );
+            }
+        }
+    });
+
+    runBacktestBtn.addEventListener('click', () => {
+        const marketBlock = botBlocks.find(b => b.type === 'market');
+        const strategyBlock = botBlocks.find(b => b.type === 'strategy');
+        const stakeBlock = botBlocks.find(b => b.type === 'stake');
+        if (!marketBlock || !strategyBlock || !stakeBlock) {
+            alert('Please configure Market, Strategy, and Stake for backtesting.');
+            return;
+        }
+        const symbol = marketBlock.element.querySelector('.symbol-select').value;
+        const strategy = strategyBlock.element.querySelector('.strategy-select').value;
+        const stake = parseFloat(stakeBlock.element.querySelector('input').value);
+        const period = parseInt(document.getElementById('backtestPeriod').value) * 60 * 1000;
+        runBacktest(symbol, strategy, stake, period);
+    });
+
+    function runBacktest(symbol, strategy, stake, period) {
+        const token = sessionStorage.getItem('deriv_token');
+        if (!token) {
+            alert('Please log in to Deriv for backtesting.');
+            return;
+        }
+        let backtestWs = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+        backtestWs.onopen = () => {
+            backtestWs.send(JSON.stringify({ authorize: token }));
+        };
+        backtestWs.onmessage = (msg) => {
+            const data = JSON.parse(msg.data);
+            if (data.msg_type === 'authorize') {
+                if (data.error) {
+                    console.error('Authorization error:', data.error.message);
+                    backtestWs.close();
+                } else {
+                    const start = Math.floor((Date.now() - period) / 1000);
+                    backtestWs.send(JSON.stringify({ ticks_history: symbol, end: 'latest', start: start, count: 0, style: 'ticks' }));
+                }
+            } else if (data.msg_type === 'history') {
+                backtestWs.close();
+                alert('Backtest completed! Check console for results.');
+                console.log('Backtest data:', data.history);
+            }
+        };
+    }
+
+    // Initialize
+    initializeChart();
+    const hamburger = document.querySelector('.hamburger');
+    const navLinks = document.querySelector('.nav-links-container');
+    if (hamburger) {
+        hamburger.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            const icon = hamburger.querySelector('i');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-times');
+        });
+    }
+});
+</script>
 </body>
 </html>
+
