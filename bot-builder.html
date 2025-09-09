@@ -1,627 +1,1594 @@
 <!DOCTYPE html>
-   <html lang="en">
-   <head>
-       <meta charset="UTF-8">
-       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <title>Bot Builder - RoyalTraders</title>
-       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-       <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4"></script>
-       <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1"></script>
-       <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
-       <style>
-           :root {
-               --bg-primary: #ffffff;
-               --bg-secondary: #f8f9fa;
-               --text-primary: #2c3e50;
-               --text-secondary: #6c757d;
-               --accent-green: #27ae60;
-               --accent-red: #e74c3c;
-               --accent-blue: #3498db;
-               --border-color: #dee2e6;
-               --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-               --card-radius: 12px;
-               --chart-bg: #ffffff;
-               --chart-grid: #e0e0e0;
-               --chart-line: #3498db;
-               --chart-candle-up: #27ae60;
-               --chart-candle-down: #e74c3c;
-           }
-           [data-theme="dark"] {
-               --bg-primary: #1a1a1a;
-               --bg-secondary: #2d2d2d;
-               --text-primary: #ffffff;
-               --text-secondary: #adb5bd;
-               --border-color: #495057;
-               --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-               --accent-blue: #4fc3f7;
-               --accent-green: #2ecc71;
-               --accent-red: #ff6b6b;
-               --chart-bg: #2d2d2d;
-               --chart-grid: #495057;
-               --chart-line: #4fc3f7;
-               --chart-candle-up: #2ecc71;
-               --chart-candle-down: #ff6b6b;
-           }
-           body {
-               font-family: 'Inter', sans-serif;
-               background-color: var(--bg-primary);
-               color: var(--text-primary);
-               margin: 0;
-               padding: 0;
-               line-height: 1.6;
-               transition: background-color 0.3s, color 0.3s;
-           }
-           .hidden { display: none !important; }
-           .top-header {
-               display: flex;
-               justify-content: space-between;
-               align-items: center;
-               padding: 0.75rem 1rem;
-               background: var(--bg-secondary);
-               border-bottom: 1px solid var(--border-color);
-               flex-wrap: wrap;
-               gap: 0.5rem;
-           }
-           .logo-text { font-weight: 700; font-size: 1.2rem; }
-           .header-right { display: flex; align-items: center; gap: 0.5rem; }
-           .btn {
-               padding: 0.5rem 1rem;
-               border: none;
-               border-radius: 6px;
-               cursor: pointer;
-               font-weight: 500;
-               font-size: 0.9rem;
-               transition: all 0.3s;
-           }
-           .btn-run {
-               background: var(--accent-green);
-               color: white;
-           }
-           .btn-run:hover { background: #219a52; }
-           .btn-secondary {
-               background: var(--accent-blue);
-               color: white;
-           }
-           .btn-secondary:hover { background: #2980b9; }
-           .main-content {
-               padding: 1rem;
-               max-width: 1200px;
-               margin: 0 auto;
-           }
-           .bot-selector {
-               display: flex;
-               align-items: center;
-               gap: 1rem;
-               margin-bottom: 1rem;
-           }
-           .bot-selector select {
-               padding: 0.5rem;
-               border-radius: 6px;
-               border: 1px solid var(--border-color);
-               background: var(--bg-primary);
-               color: var(--text-primary);
-               font-size: 0.9rem;
-               min-width: 200px;
-           }
-           .bot-preview {
-               background: var(--bg-secondary);
-               padding: 1rem;
-               border-radius: 8px;
-               border: 1px solid var(--border-color);
-               margin-bottom: 1rem;
-           }
-           .bot-preview h3 { font-size: 1rem; margin: 0 0 0.5rem; }
-           #previewChart { height: 200px; width: 100%; }
-           .status-tag {
-               padding: 0.2rem 0.6rem;
-               border-radius: 20px;
-               font-size: 0.8rem;
-               font-weight: 500;
-           }
-           .status-tag.running { background: var(--accent-green); color: white; }
-           .status-tag.not-running { background: #ffc107; color: #212529; }
-           .status-tag.connecting { background: var(--accent-blue); color: white; }
-           .status-tag.error { background: var(--accent-red); color: white; }
-           .main-footer {
-               display: flex;
-               justify-content: space-between;
-               align-items: center;
-               padding: 0.75rem 1rem;
-               background: var(--bg-secondary);
-               border-top: 1px solid var(--border-color);
-           }
-           .footer-btn {
-               background: none;
-               border: none;
-               font-size: 1rem;
-               cursor: pointer;
-               color: var(--text-secondary);
-           }
-           .footer-btn:hover { color: var(--accent-blue); }
-           @media (max-width: 768px) {
-               .top-header, .main-content, .main-footer { padding: 0.5rem; }
-               .bot-selector { flex-direction: column; align-items: flex-start; }
-               .bot-selector select { width: 100%; }
-           }
-       </style>
-   </head>
-   <body data-theme="light">
-       <header class="top-header">
-           <div class="header-left">
-               <span class="logo-text">RoyalTraders</span>
-           </div>
-           <div class="header-right">
-               <div id="user-display" class="user-info-container hidden" style="display: flex; align-items: center; gap: 0.5rem;">
-                   <div id="user-initials" style="background-color: #5c6bc0; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold;"></div>
-                   <span id="user-balance" style="font-weight: bold;">$0.00</span>
-                   <button id="logout-btn" class="btn btn-secondary">Log Out</button>
-               </div>
-               <div id="auth-links" class="auth-links-container">
-                   <button id="deriv-auth-btn" class="btn btn-secondary">Log in / Sign up with Deriv</button>
-               </div>
-           </div>
-       </header>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Builder - RoyalTraders</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
+    <link rel="stylesheet" href="styles.css"> <!-- From previous response -->
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #2c3e50;
+            --text-secondary: #6c757d;
+            --accent-green: #27ae60;
+            --accent-red: #e74c3c;
+            --accent-blue: #3498db;
+            --border-color: #dee2e6;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --card-radius: 12px;
+            --chart-bg: #ffffff;
+            --chart-grid: #e0e0e0;
+            --chart-line: #3498db;
+            --chart-candle-up: #27ae60;
+            --chart-candle-down: #e74c3c;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #adb5bd;
+            --border-color: #495057;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            --accent-blue: #4fc3f7;
+            --accent-green: #2ecc71;
+            --accent-red: #ff6b6b;
+            --chart-bg: #2d2d2d;
+            --chart-grid: #495057;
+            --chart-line: #4fc3f7;
+            --chart-candle-up: #2ecc71;
+            --chart-candle-down: #ff6b6b;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+        .hidden { display: none !important; }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .card {
+            background: var(--bg-primary);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+        }
+        .section { margin-bottom: 1.5rem; }
+        .section-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; }
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .logo { width: 20px; height: 20px; }
+        .logo-text { font-weight: 700; font-size: 1.1rem; }
+        .header-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .main-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+        .nav-links-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.8rem;
+            text-decoration: none;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .nav-link i { margin-right: 0.4rem; font-size: 0.9rem; }
+        .nav-right-actions { display: flex; align-items: center; gap: 0.5rem; }
+        .status-tag {
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-tag.running { background: var(--accent-green); color: white; }
+        .status-tag.not-running { background: #ffc107; color: #212529; }
+        .status-tag.connecting { background: var(--accent-blue); color: white; }
+        .status-tag.error { background: var(--accent-red); color: white; }
+        .btn {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn-run {
+            background: var(--accent-green);
+            color: white;
+            padding: 0.5rem 1rem;
+        }
+        .btn-run:hover { background: #219a52; }
+        .btn-secondary { background: var(--accent-blue); color: white; }
+        .btn-secondary:hover { background: #2980b9; }
+        .btn-sm { padding: 0.2rem 0.4rem; font-size: 0.8rem; }
+        .btn-action {
+            margin-right: 0.2rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-action:hover {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+        .main-content {
+            padding: 1rem;
+            max-width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+        .warning-bar {
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .main-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+        .footer-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .footer-btn:hover { color: var(--accent-blue); }
+        .loading { opacity: 0.6; pointer-events: none; }
+        .bot-builder-main {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 120px);
+            padding: 0;
+        }
+        .bot-builder-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .bot-builder-actions, .bot-builder-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .action-btn, .control-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 1rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .action-btn:hover, .control-btn:hover {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+        .bot-builder-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        .block-workspace {
+            flex: 1;
+            overflow: auto;
+            padding: 1rem;
+            background: var(--bg-primary);
+            min-height: 0;
+        }
+        .block-toolbar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        .block-group {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+        .block-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .block {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            gap: 0.5rem;
+        }
+        .block label {
+            font-weight: 500;
+            margin-right: 0.25rem;
+        }
+        .block input[type="text"], .block input[type="number"], .block select {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0.4rem 0.6rem;
+            margin: 0 0.25rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            min-width: 60px;
+        }
+        .block select {
+            appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="%232c3e50"><path d="M5 6L0 0h10z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 0.6rem center;
+            padding-right: 1.5rem;
+        }
+        [data-theme="dark"] .block select {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="%23adb5bd"><path d="M5 6L0 0h10z"/></svg>');
+        }
+        .block select:focus, .block input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        .block .fa-chevron-right, .block .fa-plus {
+            font-size: 0.8rem;
+            margin: 0 0.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .block .fa-plus:hover { color: var(--accent-green); }
+        .block-group-1 .block, .block-group-run .block, .block-group-trade-options .block {
+            background: #e3f2fd;
+            border-color: var(--accent-blue);
+        }
+        [data-theme="dark"] .block-group-1 .block, [data-theme="dark"] .block-group-run .block, [data-theme="dark"] .block-group-trade-options .block {
+            background: #0d47a1;
+            color: white;
+        }
+        .block-group-3 .block, .block-group-4 .block {
+            background: #fff8e1;
+            border-color: #ffc107;
+        }
+        [data-theme="dark"] .block-group-3 .block, [data-theme="dark"] .block-group-4 .block {
+            background: #ffca28;
+            color: #212529;
+        }
+        .nested-block {
+            margin-left: 1rem;
+            background: #f5f5f5 !important;
+            border-color: var(--accent-green);
+        }
+        [data-theme="dark"] .nested-block {
+            background: #388e3c !important;
+        }
+        .trash-can {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            color: var(--accent-red);
+            cursor: pointer;
+            background: var(--bg-secondary);
+            padding: 0.75rem;
+            border-radius: 50%;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            z-index: 5;
+        }
+        .trash-can:hover {
+            transform: scale(1.1);
+            background: var(--accent-red);
+            color: white;
+        }
+        .bot-preview {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .bot-preview h3 {
+            margin: 0 0 0.5rem;
+            font-size: 1rem;
+        }
+        #previewChart { max-height: 200px; width: 100%; }
+        .save-load-section {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .save-btn, .load-btn {
+            background: var(--accent-green);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+        }
+        .load-btn { background: var(--accent-blue); }
+        #botList {
+            list-style: none;
+            padding: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #botList li {
+            padding: 0.5rem;
+            background: var(--bg-primary);
+            margin-bottom: 0.25rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        #botList li:hover {
+            background: var(--bg-secondary);
+        }
+        .delete-bot {
+            color: var(--accent-red);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .delete-bot:hover { color: #c0392b; }
+        .hamburger {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            background: none;
+            border: none;
+        }
+        .commission-note {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+        .backtest-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .backtest-form label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .backtest-form input, .backtest-form select {
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .risk-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .risk-section h4 {
+            margin: 0 0 0.5rem;
+            font-size: 1rem;
+        }
+        @media (max-width: 768px) {
+            .nav-links-container {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                background: var(--bg-primary);
+                position: absolute;
+                top: 100%;
+                left: 0;
+                padding: 1rem;
+                z-index: 10;
+                border-top: 1px solid var(--border-color);
+            }
+            .nav-links-container.active { display: flex; }
+            .hamburger { display: block; }
+            .top-header, .main-content, .main-footer { padding: 0.5rem; }
+            .section-title { font-size: 1.1rem; }
+            .block { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+            .block input, .block select { width: 100%; min-width: auto; }
+            .bot-builder-container { flex-direction: column; }
+            .block-workspace { height: 60%; }
+            .block-toolbar { width: 100%; height: 40%; }
+            .bot-preview { font-size: 0.85rem; }
+            .btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+            .btn-run { padding: 0.4rem 0.8rem; }
+        }
+        @media (max-width: 480px) {
+            .logo-text { font-size: 1rem; }
+            .btn-sm { padding: 0.15rem 0.3rem; font-size: 0.75rem; }
+            .bot-builder-actions, .bot-builder-controls { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <header class="top-header">
+        <div class="header-left">
+            <svg class="logo" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7V17L12 22L22 17V7L12 2ZM12 4.144L20 8.5L12 12.856L4 8.5L12 4.144ZM4 10.5L11 14.5V20.856L4 16.5V10.5ZM13 14.5L20 10.5V16.5L13 20.856V14.5Z"/>
+            </svg>
+            <span class="logo-text">RoyalTraders</span>
+        </div>
+        <div class="header-right">
+            <div id="user-display" class="user-info-container hidden" style="display: flex; align-items: center; gap: 0.5rem;">
+                <div id="user-initials" style="background-color: #5c6bc0; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold;"></div>
+                <img id="country-flag" src="" alt="Country Flag" style="width: 25px; height: auto;">
+                <span id="user-balance" style="font-weight: bold;">$0.00</span>
+                <button id="logout-btn" class="btn btn-secondary btn-sm">Log Out</button>
+            </div>
+            <div id="auth-links" class="auth-links-container">
+                <button id="deriv-auth-btn" class="btn btn-secondary">Log in / Sign up with Deriv</button>
+            </div>
+        </div>
+    </header>
 
-       <main class="main-content">
-           <div class="bot-selector">
-               <select id="bot-select">
-                   <option value="forex-scalping">Forex Scalping (EUR/USD, RSI)</option>
-                   <option value="volatility-dca">Volatility DCA (Volatility 100, DCA)</option>
-                   <option value="grid-trading">Grid Trading (GBP/JPY, Grid)</option>
-               </select>
-               <span id="statusTag" class="status-tag not-running">Not Running</span>
-               <button id="runButton" class="btn btn-run"><i class="fa-solid fa-play"></i> Run Bot</button>
-           </div>
-           <div class="bot-preview">
-               <h3>Bot Performance</h3>
-               <p>Profit: <span id="realProfit">0.00</span> | Win Rate: <span id="winRate">0%</span> | Trades: <span id="tradeCount">0</span> | Commission: <span id="commissionEarned">0.00</span></p>
-               <canvas id="previewChart"></canvas>
-           </div>
-       </main>
+    <nav class="main-nav">
+        <button class="hamburger" aria-label="Toggle Menu"><i class="fa-solid fa-bars"></i></button>
+        <div class="nav-links-container">
+            <a href="index.html" class="nav-link" aria-label="Dashboard" data-page="index.html"><i class="fa-solid fa-home"></i><span>Dashboard</span></a>
+            <a href="bot-builder.html" class="nav-link active" aria-label="Bot Builder" data-page="bot-builder.html"><i class="fa-solid fa-hammer"></i><span>Bot Builder</span></a>
+            <a href="analysis-tool.html" class="nav-link" aria-label="Analysis Tool" data-page="analysis-tool.html"><i class="fa-solid fa-chart-line"></i><span>Analysis Tool</span></a>
+            <a href="batch-trader.html" class="nav-link" aria-label="Batch Trader" data-page="batch-trader.html"><i class="fa-solid fa-layer-group"></i><span>Batch Trader</span></a>
+            <a href="market-analyzer.html" class="nav-link" aria-label="Market Analyzer" data-page="market-analyzer.html"><i class="fa-solid fa-chart-area"></i><span>Market Analyzer</span></a>
+            <a href="frequency-analysis.html" class="nav-link" aria-label="Frequency Analysis" data-page="frequency-analysis.html"><i class="fa-solid fa-calculator"></i><span>Frequency Analysis</span></a>
+            <a href="digit-tool.html" class="nav-link" aria-label="Digit Tool" data-page="digit-tool.html"><i class="fa-solid fa-fingerprint"></i><span>Digit Tool</span></a>
+            <a href="free-bots.html" class="nav-link" aria-label="Free Bots" data-page="free-bots.html"><i class="fa-solid fa-robot"></i><span>Free Bots</span></a>
+            <a href="copy-trader.html" class="nav-link" aria-label="Copy Trader" data-page="copy-trader.html"><i class="fa-solid fa-copy"></i><span>Copy Trader</span></a>
+            <a href="charts.html" class="nav-link" aria-label="Charts" data-page="charts.html"><i class="fa-solid fa-chart-bar"></i><span>Charts</span></a>
+        </div>
+        <div class="nav-right-actions">
+            <span id="statusTag" class="status-tag not-running">Not Running</span>
+            <button id="runButton" class="btn btn-run"><i class="fa-solid fa-play"></i><span id="runBtnText">Run Bot</span></button>
+        </div>
+    </nav>
 
-       <footer class="main-footer">
-           <div class="footer-left">
-               <span id="dateTime">06:50 PM EAT, Tuesday, September 09, 2025</span>
-           </div>
-           <div class="footer-right">
-               <button id="darkModeToggle" class="footer-btn" aria-label="Toggle dark/light mode"><i class="fa-solid fa-moon"></i></button>
-           </div>
-       </footer>
+    <main class="main-content bot-builder-main">
+        <div class="bot-builder-header">
+            <div class="bot-builder-actions">
+                <button class="action-btn" title="New Bot"><i class="fas fa-file"></i></button>
+                <button class="action-btn" title="Open Bot" id="loadBtn"><i class="fas fa-folder-open"></i></button>
+                <button class="action-btn" title="Undo"><i class="fas fa-undo"></i></button>
+                <button class="action-btn" title="Redo"><i class="fas fa-redo"></i></button>
+                <button class="action-btn" title="Clear Workspace"><i class="fas fa-eraser"></i></button>
+                <button class="action-btn" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+                <button class="action-btn" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                <button class="action-btn save-btn" id="saveBtn" title="Save Bot"><i class="fas fa-save"></i></button>
+                <select id="chart-type" class="action-btn" style="padding: 0.5rem;">
+                    <option value="line">Line Chart</option>
+                    <option value="candlestick">Candlestick Chart</option>
+                </select>
+            </div>
+            <div class="bot-builder-controls">
+                <button class="control-btn" id="playBtn" title="Play"><i class="fas fa-play"></i></button>
+                <button class="control-btn" id="pauseBtn" title="Pause"><i class="fas fa-pause"></i></button>
+                <button class="control-btn" id="stopBtn" title="Stop"><i class="fas fa-stop"></i></button>
+            </div>
+        </div>
 
-       <script type="module">
-           document.addEventListener('DOMContentLoaded', () => {
-               const APP_ID = '99973';
-               const derivAuthBtn = document.getElementById('deriv-auth-btn');
-               const userDisplay = document.getElementById('user-display');
-               const authLinks = document.getElementById('auth-links');
-               const logoutBtn = document.getElementById('logout-btn');
-               const userInitials = document.getElementById('user-initials');
-               const userBalance = document.getElementById('user-balance');
-               const runButton = document.getElementById('runButton');
-               const statusTag = document.getElementById('statusTag');
-               const botSelect = document.getElementById('bot-select');
-               const realProfit = document.getElementById('realProfit');
-               const winRate = document.getElementById('winRate');
-               const tradeCount = document.getElementById('tradeCount');
-               const commissionEarned = document.getElementById('commissionEarned');
-               let ws = null;
-               let isRunning = false;
-               let previewChart = null;
-               let priceData = [];
-               let profit = 0;
-               let wins = 0;
-               let totalTrades = 0;
-               let totalCommission = 0;
-               let currentContracts = [];
+        <div class="bot-builder-container">
+            <div class="block-workspace" id="workspace" droppable="true">
+                <div class="block-group block-group-1" id="tradeParams">
+                    <div class="block-title">Trade Parameters</div>
+                    <div class="block" draggable="true" data-type="market">
+                        <label>Market: </label>
+                        <select class="market-select">
+                            <option>Derived</option>
+                            <option>Forex</option>
+                            <option>Cryptocurrencies</option>
+                            <option>Commodities</option>
+                        </select>
+                        <select class="symbol-select">
+                            <option value="R_100">Volatility 100 Index</option>
+                            <option value="frxEURUSD">EUR/USD</option>
+                            <option value="frxGBPJPY">GBP/JPY</option>
+                            <option value="cryBTCUSD">BTC/USD</option>
+                            <option value="comGOLDUSD">Gold/USD</option>
+                            <option value="R_75">Volatility 75 Index</option>
+                            <option value="frxAUDUSD">AUD/USD</option>
+                            <option value="cryETHUSD">ETH/USD</option>
+                            <option value="comOILUSD">Oil/USD</option>
+                        </select>
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="strategy">
+                        <label>Strategy: </label>
+                        <select class="strategy-select">
+                            <option value="dca">DCA</option>
+                            <option value="grid">Grid Trading</option>
+                            <option value="scalping">Scalping</option>
+                            <option value="martingale">Martingale</option>
+                            <option value="hedging">Hedging</option>
+                            <option value="trend">Trend Following</option>
+                            <option value="mean_reversion">Mean Reversion</option>
+                        </select>
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="stake" style="display:none;" id="stakeBlock">
+                        <label>Stake: </label>
+                        <input type="number" value="10" min="0.35">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="interval" style="display:none;" id="intervalBlock">
+                        <label>Interval (minutes): </label>
+                        <input type="number" value="5" min="1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="levels" style="display:none;" id="levelsBlock">
+                        <label>Price Levels (±%): </label>
+                        <input type="number" value="1" min="0.5" step="0.1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="rsi" style="display:none;" id="rsiBlock">
+                        <label>RSI Period: </label>
+                        <input type="number" value="14" min="2">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="macd" style="display:none;" id="macdBlock">
+                        <label>MACD (Fast,Slow,Signal): </label>
+                        <input type="number" value="12" min="1">,<input type="number" value="26" min="1">,<input type="number" value="9" min="1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="stopLoss" style="display:none;" id="stopLossBlock">
+                        <label>Stop Loss (%): </label>
+                        <input type="number" value="2" min="0.1" step="0.1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <!-- New Features: Additional Blocks -->
+                    <div class="block" draggable="true" data-type="bollinger" style="display:none;" id="bollingerBlock">
+                        <label>Bollinger Bands (Period, Dev): </label>
+                        <input type="number" value="20" min="2">,<input type="number" value="2" min="0.1" step="0.1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="ma" style="display:none;" id="maBlock">
+                        <label>Moving Average (Period, Type): </label>
+                        <input type="number" value="50" min="1">
+                        <select>
+                            <option>SMA</option>
+                            <option>EMA</option>
+                        </select>
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="stochastic" style="display:none;" id="stochasticBlock">
+                        <label>Stochastic (K, D, Smooth): </label>
+                        <input type="number" value="14" min="1">,<input type="number" value="3" min="1">,<input type="number" value="3" min="1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="takeProfit" style="display:none;" id="takeProfitBlock">
+                        <label>Take Profit (%): </label>
+                        <input type="number" value="5" min="0.1" step="0.1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="trailingStop" style="display:none;" id="trailingStopBlock">
+                        <label>Trailing Stop (%): </label>
+                        <input type="number" value="1" min="0.1" step="0.1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="maxTrades" style="display:none;" id="maxTradesBlock">
+                        <label>Max Trades: </label>
+                        <input type="number" value="10" min="1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="dailyLoss" style="display:none;" id="dailyLossBlock">
+                        <label>Daily Loss Limit (%): </label>
+                        <input type="number" value="5" min="0.1" step="0.1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="positionSize" style="display:none;" id="positionSizeBlock">
+                        <label>Position Sizing (% of Balance): </label>
+                        <input type="number" value="1" min="0.1" step="0.1">
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="tradeDirection" style="display:none;" id="tradeDirectionBlock">
+                        <label>Trade Direction: </label>
+                        <select>
+                            <option>Long</option>
+                            <option>Short</option>
+                            <option>Both</option>
+                        </select>
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="contractType" style="display:none;" id="contractTypeBlock">
+                        <label>Contract Type: </label>
+                        <select>
+                            <option>CALL</option>
+                            <option>PUT</option>
+                            <option>HIGH</option>
+                            <option>LOW</option>
+                        </select>
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                    <div class="block" draggable="true" data-type="durationUnit" style="display:none;" id="durationUnitBlock">
+                        <label>Duration Unit: </label>
+                        <select>
+                            <option>t (ticks)</option>
+                            <option>m (minutes)</option>
+                            <option>h (hours)</option>
+                        </select>
+                        <i class="fas fa-trash-alt delete-block"></i>
+                    </div>
+                </div>
+                <div class="bot-preview">
+                    <h3>Bot Preview</h3>
+                    <p>Real Performance: <span id="realProfit">0.00</span> | Win Rate: <span id="winRate">0%</span> | Trades: <span id="tradeCount">0</span> | Commission: <span id="commissionEarned">0.00</span></p>
+                    <p class="commission-note">Note: A 3% commission is applied to each trade's potential payout.</p>
+                    <div class="backtest-form" id="backtestForm">
+                        <label for="backtestPeriod">Backtest Period (minutes):</label>
+                        <input type="number" id="backtestPeriod" min="1" value="10" step="1">
+                        <label for="backtestRisk">Simulate Risk (%):</label>
+                        <input type="number" id="backtestRisk" min="0.1" value="1" step="0.1">
+                        <button type="button" class="btn btn-secondary" id="runBacktest">Run Backtest</button>
+                    </div>
+                    <canvas id="previewChart"></canvas>
+                    <div class="performance-metrics">
+                        <p>Sharpe Ratio: <span id="sharpeRatio">0.00</span> | Max Drawdown: <span id="maxDrawdown">0.00%</span></p>
+                    </div>
+                    <div class="trade-log" id="tradeLog">
+                        <h4>Trade Log</h4>
+                        <ul></ul>
+                    </div>
+                </div>
+                <div class="risk-section">
+                    <h4>Risk Management</h4>
+                    <p>Max Drawdown: <span id="maxDrawdown">0.00%</span> | Risk Level: <span id="riskLevel">Low</span></p>
+                </div>
+            </div>
 
-               // Predefined bot configurations
-               const botConfigs = {
-                   'forex-scalping': {
-                       name: 'Forex Scalping',
-                       market: 'Forex',
-                       symbol: 'frxEURUSD',
-                       strategy: 'scalping',
-                       stake: 10,
-                       rsiPeriod: 14,
-                       stopLoss: 2
-                   },
-                   'volatility-dca': {
-                       name: 'Volatility DCA',
-                       market: 'Derived',
-                       symbol: 'R_100',
-                       strategy: 'dca',
-                       stake: 10,
-                       interval: 5,
-                       stopLoss: 2
-                   },
-                   'grid-trading': {
-                       name: 'Grid Trading',
-                       market: 'Forex',
-                       symbol: 'frxGBPJPY',
-                       strategy: 'grid',
-                       stake: 10,
-                       priceLevels: 1,
-                       stopLoss: 2
-                   }
-               };
+            <div class="block-toolbar">
+                <div class="save-load-section">
+                    <button class="save-btn" id="saveToList">Save to List</button>
+                    <button class="load-btn" id="loadFromList">Load from List</button>
+                    <button class="btn-secondary" id="exportBot">Export Bot</button>
+                    <button class="btn-secondary" id="importBot">Import Bot</button>
+                </div>
+                <ul id="botList"></ul>
+                <div class="block-group block-group-3">
+                    <div class="block-title">Available Blocks</div>
+                    <div class="block" draggable="true" data-type="market">
+                        <label>Market: </label>
+                        <select class="market-select">
+                            <option>Derived</option>
+                            <option>Forex</option>
+                            <option>Cryptocurrencies</option>
+                            <option>Commodities</option>
+                        </select>
+                        <select class="symbol-select">
+                            <option value="R_100">Volatility 100 Index</option>
+                            <option value="frxEURUSD">EUR/USD</option>
+                            <option value="frxGBPJPY">GBP/JPY</option>
+                            <option value="cryBTCUSD">BTC/USD</option>
+                            <option value="comGOLDUSD">Gold/USD</option>
+                            <option value="R_75">Volatility 75 Index</option>
+                            <option value="frxAUDUSD">AUD/USD</option>
+                            <option value="cryETHUSD">ETH/USD</option>
+                            <option value="comOILUSD">Oil/USD</option>
+                        </select>
+                    </div>
+                    <div class="block" draggable="true" data-type="strategy">
+                        <label>Strategy: </label>
+                        <select class="strategy-select">
+                            <option value="dca">DCA</option>
+                            <option value="grid">Grid Trading</option>
+                            <option value="scalping">Scalping</option>
+                            <option value="martingale">Martingale</option>
+                            <option value="hedging">Hedging</option>
+                            <option value="trend">Trend Following</option>
+                            <option value="mean_reversion">Mean Reversion</option>
+                        </select>
+                    </div>
+                    <div class="block" draggable="true" data-type="stake">
+                        <label>Stake: </label>
+                        <input type="number" value="10" min="0.35">
+                    </div>
+                    <div class="block" draggable="true" data-type="interval">
+                        <label>Interval (minutes): </label>
+                        <input type="number" value="5" min="1">
+                    </div>
+                    <div class="block" draggable="true" data-type="levels">
+                        <label>Price Levels (±%): </label>
+                        <input type="number" value="1" min="0.5" step="0.1">
+                    </div>
+                    <div class="block" draggable="true" data-type="rsi">
+                        <label>RSI Period: </label>
+                        <input type="number" value="14" min="2">
+                    </div>
+                    <div class="block" draggable="true" data-type="macd">
+                        <label>MACD (Fast,Slow,Signal): </label>
+                        <input type="number" value="12" min="1">,<input type="number" value="26" min="1">,<input type="number" value="9" min="1">
+                    </div>
+                    <div class="block" draggable="true" data-type="stopLoss">
+                        <label>Stop Loss (%): </label>
+                        <input type="number" value="2" min="0.1" step="0.1">
+                    </div>
+                    <!-- New Features: Additional Blocks -->
+                    <div class="block" draggable="true" data-type="bollinger">
+                        <label>Bollinger Bands (Period, Dev): </label>
+                        <input type="number" value="20" min="2">,<input type="number" value="2" min="0.1" step="0.1">
+                    </div>
+                    <div class="block" draggable="true" data-type="ma">
+                        <label>Moving Average (Period, Type): </label>
+                        <input type="number" value="50" min="1">
+                        <select>
+                            <option>SMA</option>
+                            <option>EMA</option>
+                        </select>
+                    </div>
+                    <div class="block" draggable="true" data-type="stochastic">
+                        <label>Stochastic (K, D, Smooth): </label>
+                        <input type="number" value="14" min="1">,<input type="number" value="3" min="1">,<input type="number" value="3" min="1">
+                    </div>
+                    <div class="block" draggable="true" data-type="takeProfit">
+                        <label>Take Profit (%): </label>
+                        <input type="number" value="5" min="0.1" step="0.1">
+                    </div>
+                    <div class="block" draggable="true" data-type="trailingStop">
+                        <label>Trailing Stop (%): </label>
+                        <input type="number" value="1" min="0.1" step="0.1">
+                    </div>
+                    <div class="block" draggable="true" data-type="maxTrades">
+                        <label>Max Trades: </label>
+                        <input type="number" value="10" min="1">
+                    </div>
+                    <div class="block" draggable="true" data-type="dailyLoss">
+                        <label>Daily Loss Limit (%): </label>
+                        <input type="number" value="5" min="0.1" step="0.1">
+                    </div>
+                    <div class="block" draggable="true" data-type="positionSize">
+                        <label>Position Sizing (% of Balance): </label>
+                        <input type="number" value="1" min="0.1" step="0.1">
+                    </div>
+                    <div class="block" draggable="true" data-type="tradeDirection">
+                        <label>Trade Direction: </label>
+                        <select>
+                            <option>Long</option>
+                            <option>Short</option>
+                            <option>Both</option>
+                        </select>
+                    </div>
+                    <div class="block" draggable="true" data-type="contractType">
+                        <label>Contract Type: </label>
+                        <select>
+                            <option>CALL</option>
+                            <option>PUT</option>
+                            <option>HIGH</option>
+                            <option>LOW</option>
+                        </select>
+                    </div>
+                    <div class="block" draggable="true" data-type="durationUnit">
+                        <label>Duration Unit: </label>
+                        <select>
+                            <option>t (ticks)</option>
+                            <option>m (minutes)</option>
+                            <option>h (hours)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
 
-               // Login handling with debugging
-               if (derivAuthBtn) {
-                   derivAuthBtn.addEventListener('click', () => {
-                       console.log('Initiating Deriv OAuth login...');
-                       const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${APP_ID}&l=en&brand=deriv`;
-                       window.location.href = oauthUrl;
-                   });
-               }
-               if (logoutBtn) {
-                   logoutBtn.addEventListener('click', () => {
-                       console.log('Logging out...');
-                       sessionStorage.removeItem('deriv_token');
-                       updateUIForLoginState(false);
-                       window.location.reload();
-                   });
-               }
-               function updateUIForLoginState(isLoggedIn) {
-                   console.log('Updating UI for login state:', isLoggedIn);
-                   if (isLoggedIn) {
-                       authLinks.classList.add('hidden');
-                       userDisplay.classList.remove('hidden');
-                       userInitials.textContent = 'RT';
-                       fetchBalance();
-                   } else {
-                       authLinks.classList.remove('hidden');
-                       userDisplay.classList.add('hidden');
-                       userBalance.textContent = '$0.00';
-                   }
-               }
-               function fetchBalance() {
-                   const token = sessionStorage.getItem('deriv_token');
-                   console.log('Fetching balance with token:', token);
-                   if (!token) {
-                       console.warn('No token found for balance fetch');
-                       return;
-                   }
-                   const wsBalance = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
-                   wsBalance.onopen = () => {
-                       console.log('Balance WebSocket opened');
-                       wsBalance.send(JSON.stringify({ authorize: token }));
-                   };
-                   wsBalance.onmessage = (msg) => {
-                       const data = JSON.parse(msg.data);
-                       console.log('Balance WebSocket message:', data);
-                       if (data.msg_type === 'authorize' && !data.error) {
-                           wsBalance.send(JSON.stringify({ balance: 1, subscribe: 1 }));
-                       } else if (data.msg_type === 'balance') {
-                           userBalance.textContent = `$${data.balance.balance.toFixed(2)}`;
-                       } else if (data.error) {
-                           console.error('Balance fetch error:', data.error.message);
-                       }
-                   };
-                   wsBalance.onerror = () => {
-                       console.error('Balance WebSocket error');
-                       wsBalance.close();
-                   };
-               }
-               const params = new URLSearchParams(window.location.search);
-               const token = params.get('token');
-               console.log('URL Token:', token);
-               if (token) {
-                   console.log('Saving token to sessionStorage');
-                   sessionStorage.setItem('deriv_token', token);
-                   updateUIForLoginState(true);
-                   window.history.replaceState({}, document.title, window.location.pathname);
-               } else {
-                   const storedToken = sessionStorage.getItem('deriv_token');
-                   console.log('Stored Token:', storedToken);
-                   if (!storedToken) {
-                       console.warn('No token found, prompting for manual entry');
-                       const manualToken = prompt('No token found. Enter your Deriv API token (optional, for debugging):');
-                       if (manualToken) {
-                           sessionStorage.setItem('deriv_token', manualToken);
-                           updateUIForLoginState(true);
-                       }
-                   } else {
-                       updateUIForLoginState(true);
-                   }
-               }
+            <div class="trash-can" id="trashCan"><i class="fas fa-trash-alt"></i></div>
+        </div>
+    </main>
 
-               // Date and time update
-               function updateDateTime() {
-                   const now = new Date();
-                   document.getElementById('dateTime').textContent = now.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' });
-               }
-               updateDateTime();
-               setInterval(updateDateTime, 1000);
+    <div class="warning-bar">
+        <strong>Disclaimer:</strong> Trading involves risk. All analysis tools and bots are for informational purposes only. A 3% commission is applied to trade payouts.
+    </div>
 
-               // Theme toggle
-               const darkModeToggle = document.getElementById('darkModeToggle');
-               darkModeToggle.addEventListener('click', () => {
-                   const body = document.body;
-                   const currentTheme = body.getAttribute('data-theme');
-                   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                   body.setAttribute('data-theme', newTheme);
-                   localStorage.setItem('theme', newTheme);
-                   darkModeToggle.querySelector('i').className = newTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-                   updateChartTheme(newTheme);
-               });
-               const savedTheme = localStorage.getItem('theme') || 'light';
-               document.body.setAttribute('data-theme', savedTheme);
-               darkModeToggle.querySelector('i').className = savedTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    <footer class="main-footer">
+        <div class="footer-left">
+            <span id="dateTime">09:09 PM EAT, Tuesday, September 09, 2025</span>
+        </div>
+        <div class="footer-right">
+            <button id="settingsToggle" class="footer-btn" aria-label="Settings"><i class="fa-solid fa-cog"></i></button>
+            <button id="darkModeToggle" class="footer-btn" aria-label="Toggle dark/light mode"><i class="fa-solid fa-moon"></i></button>
+            <div class="language-select" style="display: flex; align-items: center;">
+                <button class="footer-btn" aria-label="Select language"><i class="fa-solid fa-globe"></i></button>
+                <i class="fa-solid fa-caret-down" style="margin-left: 0.25rem; color: var(--text-secondary);"></i>
+            </div>
+        </div>
+    </footer>
 
-               // Chart initialization
-               function initializeChart() {
-                   const ctx = document.getElementById('previewChart').getContext('2d');
-                   priceData = generateDefaultData();
-                   previewChart = new Chart(ctx, {
-                       type: 'line',
-                       data: {
-                           datasets: [{
-                               label: 'Price',
-                               data: priceData,
-                               borderColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-line'),
-                               backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-line').replace(')', ', 0.2)'),
-                               borderWidth: 2,
-                               fill: false,
-                               pointRadius: 0,
-                               tension: 0.1
-                           }]
-                       },
-                       options: {
-                           responsive: true,
-                           maintainAspectRatio: false,
-                           plugins: {
-                               title: {
-                                   display: true,
-                                   text: 'Bot Performance Chart',
-                                   color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
-                                   font: { size: 16 }
-                               },
-                               legend: { display: false }
-                           },
-                           scales: {
-                               x: {
-                                   type: 'time',
-                                   time: { unit: 'minute', displayFormats: { minute: 'HH:mm' } },
-                                   grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid') },
-                                   ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') }
-                               },
-                               y: {
-                                   grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid') },
-                                   ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') }
-                               }
-                           }
-                       }
-                   });
-                   updateChartTheme(savedTheme);
-               }
-               function generateDefaultData() {
-                   const now = Date.now();
-                   const defaultData = [];
-                   for (let i = 0; i < 10; i++) {
-                       const time = now - (9 - i) * 60000;
-                       const basePrice = 1000 + Math.random() * 100;
-                       defaultData.push({ x: time, y: basePrice });
-                   }
-                   return defaultData;
-               }
-               function updateChartTheme(theme) {
-                   if (previewChart) {
-                       previewChart.options.plugins.title.color = theme === 'dark' ? '#ffffff' : '#2c3e50';
-                       previewChart.options.scales.x.grid.color = theme === 'dark' ? '#495057' : '#e0e0e0';
-                       previewChart.options.scales.y.grid.color = theme === 'dark' ? '#495057' : '#e0e0e0';
-                       previewChart.options.scales.x.ticks.color = theme === 'dark' ? '#adb5bd' : '#6c757d';
-                       previewChart.options.scales.y.ticks.color = theme === 'dark' ? '#adb5bd' : '#6c757d';
-                       previewChart.data.datasets[0].borderColor = theme === 'dark' ? '#4fc3f7' : '#3498db';
-                       previewChart.data.datasets[0].backgroundColor = theme === 'dark' ? 'rgba(79, 195, 247, 0.2)' : 'rgba(52, 152, 219, 0.2)';
-                       previewChart.update();
-                   }
-               }
-               function updateChart(price, time) {
-                   priceData.push({ x: time, y: parseFloat(price) });
-                   if (priceData.length > 100) priceData.shift();
-                   previewChart.data.datasets[0].data = priceData;
-                   previewChart.update('none');
-               }
+    <script src="auth.js" type="module"></script>
+    <script type="module">
+        document.addEventListener('DOMContentLoaded', () => {
+            const APP_ID = '99973';
+            let ws = null;
+            let botBlocks = [];
+            let previewChart = null;
+            let isDragging = false;
+            let isRunning = false;
+            let priceData = [];
+            let profit = 0;
+            let wins = 0;
+            let totalTrades = 0;
+            let totalCommission = 0;
+            const statusTag = document.getElementById('statusTag');
+            const runButton = document.getElementById('runButton');
+            const runBtnText = document.getElementById('runBtnText');
+            const chartTypeSelect = document.getElementById('chart-type');
+            const realProfit = document.getElementById('realProfit');
+            const winRate = document.getElementById('winRate');
+            const tradeCount = document.getElementById('tradeCount');
+            const commissionEarned = document.getElementById('commissionEarned');
+            const maxDrawdown = document.getElementById('maxDrawdown');
+            const riskLevel = document.getElementById('riskLevel');
+            let currentChartType = chartTypeSelect.value;
+            const stakeBlock = document.getElementById('stakeBlock');
+            const intervalBlock = document.getElementById('intervalBlock');
+            const levelsBlock = document.getElementById('levelsBlock');
+            const rsiBlock = document.getElementById('rsiBlock');
+            const macdBlock = document.getElementById('macdBlock');
+            const stopLossBlock = document.getElementById('stopLossBlock');
+            const backtestForm = document.getElementById('backtestForm');
+            const runBacktestBtn = document.getElementById('runBacktest');
+            let currentContracts = [];
+            let payoutRate = 0.95; // 95% payout rate
 
-               // Bot running logic
-               function startBot(botConfig) {
-                   const token = sessionStorage.getItem('deriv_token');
-                   console.log('Starting bot with token:', token);
-                   if (!token) {
-                       alert('Please log in to Deriv to run the bot.');
-                       stopBot();
-                       return;
-                   }
-                   const balance = parseFloat(userBalance.textContent.replace('$', '')) || 0;
-                   if (botConfig.stake > balance) {
-                       alert('Insufficient balance for this stake.');
-                       stopBot();
-                       return;
-                   }
-                   if (ws) {
-                       ws.close();
-                       ws = null;
-                   }
-                   isRunning = true;
-                   statusTag.classList.remove('not-running', 'running', 'error');
-                   statusTag.classList.add('connecting');
-                   statusTag.textContent = 'Connecting...';
-                   runButton.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Bot';
-                   priceData = [];
-                   previewChart.data.datasets[0].data = priceData;
-                   previewChart.update();
-                   currentContracts = [];
+            let savedBots = JSON.parse(localStorage.getItem('savedBots')) || [];
 
-                   ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
-                   ws.onopen = () => {
-                       console.log('WebSocket opened');
-                       ws.send(JSON.stringify({ authorize: token }));
-                   };
-                   ws.onmessage = (msg) => {
-                       const data = JSON.parse(msg.data);
-                       console.log('WebSocket message:', data);
-                       if (data.msg_type === 'authorize') {
-                           if (data.error) {
-                               console.error('Authorization error:', data.error.message);
-                               statusTag.classList.add('error');
-                               statusTag.textContent = `Error: ${data.error.message}`;
-                               stopBot();
-                           } else {
-                               ws.send(JSON.stringify({ ticks: botConfig.symbol, subscribe: 1 }));
-                               statusTag.classList.remove('not-running', 'connecting', 'error');
-                               statusTag.classList.add('running');
-                               statusTag.textContent = 'Running';
-                           }
-                       } else if (data.msg_type === 'tick') {
-                           const price = data.tick.quote;
-                           const time = data.tick.epoch * 1000;
-                           updateChart(price, time);
-                           executeStrategy(botConfig, price, time);
-                       } else if (data.msg_type === 'proposal') {
-                           if (data.error) {
-                               console.error('Proposal error:', data.error.message);
-                           } else {
-                               ws.send(JSON.stringify({ buy: 1, proposal_id: data.proposal.id, price: data.proposal.ask_price }));
-                           }
-                       } else if (data.msg_type === 'buy') {
-                           if (data.error) {
-                               console.error('Buy error:', data.error.message);
-                               statusTag.classList.add('error');
-                               statusTag.textContent = `Error: ${data.error.message}`;
-                               stopBot();
-                           } else {
-                               currentContracts.push(data.buy.contract_id);
-                               ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: data.buy.contract_id, subscribe: 1 }));
-                           }
-                       } else if (data.msg_type === 'proposal_open_contract') {
-                           if (data.error) {
-                               console.error('Contract update error:', data.error.message);
-                           } else {
-                               const contract = data.proposal_open_contract;
-                               if (contract.is_sold) {
-                                   totalTrades++;
-                                   const contractProfit = contract.profit;
-                                   profit += contractProfit;
-                                   if (contractProfit > 0) wins++;
-                                   realProfit.textContent = profit.toFixed(2);
-                                   winRate.textContent = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + '%' : '0%';
-                                   tradeCount.textContent = totalTrades;
-                                   const commission = (contract.payout * 0.03);
-                                   totalCommission += commission;
-                                   commissionEarned.textContent = totalCommission.toFixed(2);
-                                   currentContracts = currentContracts.filter(id => id !== contract.contract_id);
-                               }
-                           }
-                       } else if (data.error) {
-                           console.error('API error:', data.error.message);
-                           statusTag.classList.add('error');
-                           statusTag.textContent = `Error: ${data.error.message}`;
-                           stopBot();
-                       }
-                   };
-                   ws.onclose = () => {
-                       console.log('WebSocket closed');
-                       if (isRunning) setTimeout(() => startBot(botConfig), 2000);
-                   };
-                   ws.onerror = (error) => {
-                       console.error('WebSocket error:', error);
-                       statusTag.classList.add('error');
-                       statusTag.textContent = 'Error: Connection failed';
-                       stopBot();
-                   };
-               }
+            function renderBotList() {
+                const botList = document.getElementById('botList');
+                botList.innerHTML = '';
+                savedBots.forEach((bot, index) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${bot.name}</span><span class="delete-bot" data-index="${index}" title="Delete">&times;</span>`;
+                    li.addEventListener('click', (e) => {
+                        if (!e.target.classList.contains('delete-bot')) loadBot(bot.config);
+                    });
+                    botList.appendChild(li);
+                });
+            }
+            renderBotList();
 
-               function stopBot() {
-                   console.log('Stopping bot');
-                   if (ws) ws.close();
-                   isRunning = false;
-                   statusTag.classList.remove('connecting', 'running', 'error');
-                   statusTag.classList.add('not-running');
-                   statusTag.textContent = 'Not Running';
-                   runButton.innerHTML = '<i class="fa-solid fa-play"></i> Run Bot';
-                   priceData = generateDefaultData();
-                   previewChart.data.datasets[0].data = priceData;
-                   previewChart.update();
-               }
+            document.getElementById('botList').addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-bot')) {
+                    const index = parseInt(e.target.dataset.index);
+                    if (confirm(`Delete ${savedBots[index].name}?`)) {
+                        savedBots.splice(index, 1);
+                        localStorage.setItem('savedBots', JSON.stringify(savedBots));
+                        renderBotList();
+                    }
+                }
+            });
 
-               function executeStrategy(botConfig, price, time) {
-                   let tradeType = Math.random() > 0.5 ? 'CALL' : 'PUT';
-                   let shouldTrade = false;
+            function updateChartTheme(theme) {
+                if (previewChart) {
+                    previewChart.options.plugins.title.color = theme === 'dark' ? '#ffffff' : '#2c3e50';
+                    previewChart.options.scales.x.grid.color = theme === 'dark' ? '#495057' : '#e0e0e0';
+                    previewChart.options.scales.y.grid.color = theme === 'dark' ? '#495057' : '#e0e0e0';
+                    previewChart.options.scales.x.ticks.color = theme === 'dark' ? '#adb5bd' : '#6c757d';
+                    previewChart.options.scales.y.ticks.color = theme === 'dark' ? '#adb5bd' : '#6c757d';
+                    previewChart.data.datasets[0].borderColor = theme === 'dark' ? '#4fc3f7' : '#3498db';
+                    previewChart.data.datasets[0].backgroundColor = theme === 'dark' ? 'rgba(79, 195, 247, 0.2)' : 'rgba(52, 152, 219, 0.2)';
+                    previewChart.data.datasets[0].barBackgroundColor = {
+                        up: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-up'),
+                        down: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-down'),
+                        unchanged: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-up')
+                    };
+                    previewChart.update();
+                }
+            }
 
-                   if (botConfig.strategy === 'dca') {
-                       if (!botConfig.lastTradeTime || time - botConfig.lastTradeTime >= botConfig.interval * 60 * 1000) {
-                           shouldTrade = true;
-                           botConfig.lastTradeTime = time;
-                           tradeType = 'CALL';
-                       }
-                   } else if (botConfig.strategy === 'grid') {
-                       shouldTrade = true;
-                       tradeType = Math.random() > 0.5 ? 'CALL' : 'PUT';
-                   } else if (botConfig.strategy === 'scalping') {
-                       const rsi = calculateRSI(priceData.map(d => d.y).slice(-botConfig.rsiPeriod));
-                       if (rsi < 30) tradeType = 'CALL';
-                       else if (rsi > 70) tradeType = 'PUT';
-                       shouldTrade = rsi < 30 || rsi > 70;
-                   }
+            function initializeChart() {
+                const ctx = document.getElementById('previewChart').getContext('2d');
+                priceData = generateDefaultData();
+                previewChart = new Chart(ctx, {
+                    type: currentChartType === 'candlestick' ? 'candlestick' : 'line',
+                    data: {
+                        datasets: [{
+                            label: 'Price',
+                            data: priceData,
+                            borderColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-line'),
+                            backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-line').replace(')', ', 0.2)'),
+                            borderWidth: currentChartType === 'candlestick' ? 1 : 2,
+                            fill: currentChartType === 'candlestick' ? false : false,
+                            pointRadius: currentChartType === 'candlestick' ? 0 : 0,
+                            tension: currentChartType === 'candlestick' ? 0 : 0.1,
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                            barBackgroundColor: currentChartType === 'candlestick' ? {
+                                up: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-up'),
+                                down: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-down'),
+                                unchanged: getComputedStyle(document.documentElement).getPropertyValue('--chart-candle-up')
+                            } : undefined
+                        }]
+                    },
+                    options: {
+                        responsive: true;
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Bot Preview Chart',
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                                font: { size: 16 }
+                            },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'minute',
+                                    displayFormats: { minute: 'HH:mm' }
+                                },
+                                grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid') },
+                                ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') }
+                            },
+                            y: {
+                                grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid') },
+                                ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') }
+                            }
+                        }
+                    }
+                });
+                updateChartTheme(savedTheme);
+            }
 
-                   if (shouldTrade && botConfig.stopLoss) {
-                       const initialPrice = priceData[0].y;
-                       if (Math.abs((price - initialPrice) / initialPrice * 100) > botConfig.stopLoss) {
-                           alert('Stop loss triggered!');
-                           stopBot();
-                           return;
-                       }
-                   }
+            function generateDefaultData() {
+                const now = Date.now();
+                const defaultData = [];
+                for (let i = 0; i < 10; i++) {
+                    const time = now - (9 - i) * 60000;
+                    const basePrice = 1000 + Math.random() * 100;
+                    if (currentChartType === 'candlestick') {
+                        defaultData.push({
+                            x: time,
+                            o: basePrice,
+                            h: basePrice + Math.random() * 10,
+                            l: basePrice - Math.random() * 10,
+                            c: basePrice + (Math.random() - 0.5) * 10
+                        });
+                    } else {
+                        defaultData.push({ x: time, y: basePrice });
+                    }
+                }
+                return defaultData;
+            }
 
-                   if (shouldTrade) {
-                       requestTrade(botConfig.symbol, botConfig.stake, tradeType, price);
-                   }
-               }
+            function updateChart(price, time, isCandle = false) {
+                if (currentChartType === 'candlestick') {
+                    if (isCandle) {
+                        priceData.push(price); // Assume price is {x, o, h, l, c}
+                    } else {
+                        const lastCandle = priceData[priceData.length - 1];
+                        const parsedPrice = parseFloat(price);
+                        if (lastCandle && time - lastCandle.x < 60000) {
+                            lastCandle.c = parsedPrice;
+                            lastCandle.h = Math.max(lastCandle.h, parsedPrice);
+                            lastCandle.l = Math.min(lastCandle.l, parsedPrice);
+                        } else {
+                            priceData.push({
+                                x: time,
+                                o: lastCandle ? lastCandle.c : parsedPrice,
+                                h: parsedPrice,
+                                l: parsedPrice,
+                                c: parsedPrice
+                            });
+                        }
+                    }
+                } else {
+                    priceData.push({ x: time, y: parseFloat(price) });
+                }
+                if (priceData.length > 100) priceData.shift();
+                previewChart.data.datasets[0].data = priceData;
+                previewChart.update('none');
+            }
 
-               function calculateRSI(prices) {
-                   if (prices.length < 2) return 50;
-                   let gains = 0, losses = 0;
-                   for (let i = 1; i < prices.length; i++) {
-                       const diff = prices[i] - prices[i-1];
-                       if (diff > 0) gains += diff;
-                       else losses += Math.abs(diff);
-                   }
-                   const avgGain = gains / (prices.length - 1);
-                   const avgLoss = losses / (prices.length - 1);
-                   return avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
-               }
+            function startBot(symbol) {
+                const token = sessionStorage.getItem('deriv_token');
+                if (!token) {
+                    alert('Please log in to Deriv to run the bot.');
+                    stopBot();
+                    return;
+                }
+                const marketBlock = botBlocks.find(b => b.type === 'market');
+                const strategyBlock = botBlocks.find(b => b.type === 'strategy');
+                const stakeBlock = botBlocks.find(b => b.type === 'stake');
+                if (!marketBlock || !strategyBlock || !stakeBlock) {
+                    alert('Please configure market, strategy, and stake.');
+                    stopBot();
+                    return;
+                }
+                const stake = parseFloat(stakeBlock.element.querySelector('input').value);
+                const balance = parseFloat(userBalance.textContent.replace('$', '')) || 0;
+                if (stake > balance) {
+                    alert('Insufficient balance for this stake.');
+                    stopBot();
+                    return;
+                }
+                if (ws) {
+                    ws.close();
+                    ws = null;
+                }
+                isRunning = true;
+                statusTag.classList.remove('not-running', 'running', 'error');
+                statusTag.classList.add('connecting');
+                statusTag.textContent = 'Connecting...';
+                runBtnText.textContent = 'Stop Bot';
+                runButton.innerHTML = '<i class="fa-solid fa-stop"></i>Stop Bot';
+                priceData = [];
+                previewChart.data.datasets[0].data = priceData;
+                previewChart.update();
+                currentContracts = [];
 
-               function requestTrade(symbol, stake, tradeType, price) {
-                   if (ws && ws.readyState === WebSocket.OPEN) {
-                       const proposal = {
-                           proposal: 1,
-                           amount: stake,
-                           basis: 'stake',
-                           contract_type: tradeType,
-                           currency: 'USD',
-                           symbol: symbol,
-                           duration: 1,
-                           duration_unit: 't'
-                       };
-                       console.log('Requesting trade:', proposal);
-                       ws.send(JSON.stringify(proposal));
-                   }
-               }
+                ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ authorize: token }));
+                };
+                ws.onmessage = (msg) => {
+                    const data = JSON.parse(msg.data);
+                    if (data.msg_type === 'authorize') {
+                        if (data.error) {
+                            console.error('Authorization error:', data.error.message);
+                            statusTag.classList.add('error');
+                            statusTag.textContent = `Error: ${data.error.message}`;
+                            stopBot();
+                        } else {
+                            ws.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
+                            statusTag.classList.remove('not-running', 'connecting', 'error');
+                            statusTag.classList.add('running');
+                            statusTag.textContent = 'Running';
+                        }
+                    } else if (data.msg_type === 'tick') {
+                        const price = data.tick.quote;
+                        const time = data.tick.epoch * 1000;
+                        updateChart(price, time);
+                        executeStrategy(strategyBlock.element.querySelector('.strategy-select').value, symbol, stake, price, time);
+                    } else if (data.msg_type === 'proposal') {
+                        if (data.error) {
+                            console.error('Proposal error:', data.error.message);
+                        } else {
+                            ws.send(JSON.stringify({ buy: 1, proposal_id: data.proposal.id, price: data.proposal.ask_price }));
+                        }
+                    } else if (data.msg_type === 'buy') {
+                        if (data.error) {
+                            console.error('Buy error:', data.error.message);
+                            statusTag.classList.add('error');
+                            statusTag.textContent = `Error: ${data.error.message}`;
+                            stopBot();
+                        } else {
+                            console.log('Trade placed:', data.buy);
+                            currentContracts.push(data.buy.contract_id);
+                            ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: data.buy.contract_id, subscribe: 1 }));
+                        }
+                    } else if (data.msg_type === 'proposal_open_contract') {
+                        if (data.error) {
+                            console.error('Contract update error:', data.error.message);
+                        } else {
+                            const contract = data.proposal_open_contract;
+                            if (contract.is_sold) {
+                                totalTrades++;
+                                const contractProfit = contract.profit;
+                                profit += contractProfit;
+                                if (contractProfit > 0) wins++;
+                                realProfit.textContent = profit.toFixed(2);
+                                winRate.textContent = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + '%' : '0%';
+                                tradeCount.textContent = totalTrades;
+                                currentContracts = currentContracts.filter(id => id !== contract.contract_id);
+                                const commission = (contract.payout * 0.03);
+                                totalCommission += commission;
+                                commissionEarned.textContent = totalCommission.toFixed(2);
+                                updateRiskMetrics();
+                            }
+                        }
+                    } else if (data.error) {
+                        console.error('API error:', data.error.message);
+                        statusTag.classList.add('error');
+                        statusTag.textContent = `Error: ${data.error.message}`;
+                        stopBot();
+                    }
+                };
+                ws.onclose = () => {
+                    if (isRunning) setTimeout(() => startBot(symbol), 2000);
+                };
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    statusTag.classList.add('error');
+                    statusTag.textContent = 'Error: Connection failed';
+                    stopBot();
+                };
+            }
 
-               // Initialize chart and run button
-               initializeChart();
-               runButton.addEventListener('click', () => {
-                   console.log('Run button clicked, isRunning:', isRunning);
-                   if (isRunning) {
-                       stopBot();
-                   } else {
-                       const botConfig = botConfigs[botSelect.value];
-                       startBot(botConfig);
-                   }
-               });
-           });
-       </script>
-   </body>
-   </html>
+            function stopBot() {
+                if (ws) ws.close();
+                isRunning = false;
+                statusTag.classList.remove('connecting', 'running', 'error');
+                statusTag.classList.add('not-running');
+                statusTag.textContent = 'Not Running';
+                runBtnText.textContent = 'Run Bot';
+                runButton.innerHTML = '<i class="fa-solid fa-play"></i>Run Bot';
+                priceData = generateDefaultData();
+                previewChart.data.datasets[0].data = priceData;
+                previewChart.update();
+            }
+
+            function executeStrategy(strategy, symbol, stake, price, time) {
+                let tradeType = Math.random() > 0.5 ? 'CALL' : 'PUT'; // Placeholder, refine with indicators
+                const intervalBlock = botBlocks.find(b => b.type === 'interval');
+                const levelsBlock = botBlocks.find(b => b.type === 'levels');
+                const rsiBlock = botBlocks.find(b => b.type === 'rsi');
+                const macdBlock = botBlocks.find(b => b.type === 'macd');
+                const stopLossBlock = botBlocks.find(b => b.type === 'stopLoss');
+                let shouldTrade = false;
+
+                if (strategy === 'dca' && intervalBlock) {
+                    const interval = parseInt(intervalBlock.element.querySelector('input').value) * 60 * 1000;
+                    if (!intervalBlock.lastTradeTime || time - intervalBlock.lastTradeTime >= interval) {
+                        shouldTrade = true;
+                        intervalBlock.lastTradeTime = time;
+                        tradeType = 'CALL';
+                    }
+                } else if (strategy === 'grid' && levelsBlock) {
+                    const levels = parseFloat(levelsBlock.element.querySelector('input').value) / 100;
+                    shouldTrade = true;
+                    tradeType = Math.random() > 0.5 ? 'CALL' : 'PUT';
+                } else if (strategy === 'scalping') {
+                    if (rsiBlock) {
+                        const period = parseInt(rsiBlock.element.querySelector('input').value);
+                        const rsi = calculateRSI(priceData.map(d => d.y || d.c).slice(-period));
+                        if (rsi < 30) tradeType = 'CALL';
+                        else if (rsi > 70) tradeType = 'PUT';
+                        shouldTrade = rsi < 30 || rsi > 70;
+                    } else if (macdBlock) {
+                        const [fast, slow, signal] = macdBlock.element.querySelectorAll('input').map(i => parseInt(i.value));
+                        const macd = calculateMACD(priceData.map(d => d.y || d.c).slice(-Math.max(fast, slow)), fast, slow, signal);
+                        if (macd.macd > macd.signal && priceData[priceData.length - 2].y < price) {
+                            shouldTrade = true;
+                            tradeType = 'CALL';
+                        } if (macd.macd < macd.signal && priceData[priceData.length - 2].y > price) {
+                            shouldTrade = true;
+                            tradeType = 'PUT';
+                        }
+                    } else {
+                        const prices = priceData.map(d => d.y || d.c).slice(-20);
+                        if (prices.length >= 20) {
+                            const sma5 = prices.slice(-5).reduce((a, b) => a + b, 0) / 5;
+                            const sma20 = prices.reduce((a, b) => a + b, 0) / 20;
+                            if (sma5 > sma20) {
+                                shouldTrade = true;
+                                tradeType = 'CALL';
+                            } else if (sma5 < sma20) {
+                                shouldTrade = true;
+                                tradeType = 'PUT';
+                            }
+                        }
+                    }
+                }
+
+                if (shouldTrade && stopLossBlock) {
+                    const stopLoss = parseFloat(stopLossBlock.element.querySelector('input').value);
+                    if (Math.abs((price - priceData[0].y) / priceData[0].y * 100) > stopLoss) {
+                        shouldTrade = false;
+                        alert('Stop loss triggered!');
+                        stopBot();
+                    }
+                }
+
+                if (shouldTrade) {
+                    requestTrade(symbol, stake, tradeType, price);
+                }
+            }
+
+            function calculateRSI(prices) {
+                if (prices.length < 2) return 50;
+                let gains = 0, losses = 0;
+                for (let i = 1; i < prices.length; i++) {
+                    const diff = prices[i] - prices[i-1];
+                    if (diff > 0) gains += diff;
+                    else losses += Math.abs(diff);
+                }
+                const avgGain = gains / (prices.length - 1);
+                const avgLoss = losses / (prices.length - 1);
+                return avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+            }
+
+            function calculateMACD(prices, fast, slow, signal) {
+                const emaFast = prices.reduce((ema, price, i) => i === 0 ? price : ema + (2 / (fast + 1)) * (price - ema), prices[0]);
+                const emaSlow = prices.reduce((ema, price, i) => i === 0 ? price : ema + (2 / (slow + 1)) * (price - ema), prices[0]);
+                const macdLine = emaFast - emaSlow;
+                const signalLine = prices.slice(-signal).reduce((ema, price, i) => i === 0 ? macdLine : ema + (2 / (signal + 1)) * (macdLine - ema), macdLine);
+                return { macd: macdLine, signal: signalLine };
+            }
+
+            function requestTrade(symbol, stake, tradeType, price) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    const proposal = {
+                        proposal: 1,
+                        amount: stake,
+                        basis: 'stake',
+                        contract_type: tradeType,
+                        currency: 'USD',
+                        symbol: symbol,
+                        duration: 1,
+                        duration_unit: 't'
+                    };
+                    ws.send(JSON.stringify(proposal));
+                }
+            }
+
+            function updateRiskMetrics() {
+                const drawdown = Math.min(0, (profit / (parseFloat(document.getElementById('user-balance').textContent.replace('$', '')) + profit)) * 100);
+                maxDrawdown.textContent = drawdown.toFixed(2) + '%';
+                riskLevel.textContent = drawdown < -5 ? 'High' : drawdown < -2 ? 'Medium' : 'Low';
+            }
+
+            document.querySelectorAll('[draggable="true"]').forEach(block => {
+                block.addEventListener('dragstart', (e) => {
+                    isDragging = true;
+                    e.dataTransfer.setData('text/plain', block.dataset.type);
+                    block.classList.add('dragging');
+                });
+                block.addEventListener('dragend', () => {
+                    block.classList.remove('dragging');
+                    isDragging = false;
+                });
+            });
+
+            botWorkspace.addEventListener('dragover', (e) => e.preventDefault());
+            botWorkspace.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (isDragging) {
+                    const type = e.dataTransfer.getData('text/plain');
+                    const newBlock = createBlock(type);
+                    const tradeParams = botWorkspace.querySelector('#tradeParams');
+                    tradeParams.appendChild(newBlock);
+                    botBlocks.push({ type, element: newBlock });
+                    updateBlocksVisibility();
+                    updatePreview();
+                }
+            });
+
+            trashCan.addEventListener('dragover', (e) => e.preventDefault());
+            trashCan.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (isDragging) {
+                    const dragged = document.querySelector('.dragging');
+                    if (dragged) {
+                        dragged.remove();
+                        botBlocks = botBlocks.filter(b => b.element !== dragged);
+                        updateBlocksVisibility();
+                        updatePreview();
+                    }
+                }
+            });
+
+            botWorkspace.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-block')) {
+                    const block = e.target.closest('.block');
+                    block.remove();
+                    botBlocks = botBlocks.filter(b => b.element !== block);
+                    updateBlocksVisibility();
+                    updatePreview();
+                }
+                if (e.target.classList.contains('strategy-select')) {
+                    updateBlocksVisibility();
+                }
+            });
+
+            function createBlock(type) {
+                const block = document.createElement('div');
+                block.className = 'block';
+                block.draggable = true;
+                block.dataset.type = type;
+                switch (type) {
+                    case 'market':
+                        block.innerHTML = '<label>Market: </label><select class="market-select"><option>Derived</option><option>Forex</option><option>Cryptocurrencies</option><option>Commodities</option></select><select class="symbol-select"><option value="R_100">Volatility 100 Index</option><option value="frxEURUSD">EUR/USD</option><option value="frxGBPJPY">GBP/JPY</option><option value="cryBTCUSD">BTC/USD</option><option value="comGOLDUSD">Gold/USD</option><option value="R_75">Volatility 75 Index</option><option value="frxAUDUSD">AUD/USD</option><option value="cryETHUSD">ETH/USD</option><option value="comOILUSD">Oil/USD</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'strategy':
+                        block.innerHTML = '<label>Strategy: </label><select class="strategy-select"><option value="dca">DCA</option><option value="grid">Grid Trading</option><option value="scalping">Scalping</option><option value="martingale">Martingale</option><option value="hedging">Hedging</option><option value="trend">Trend Following</option><option value="mean_reversion">Mean Reversion</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'stake':
+                        block.innerHTML = '<label>Stake: </label><input type="number" value="10" min="0.35"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'interval':
+                        block.innerHTML = '<label>Interval (minutes): </label><input type="number" value="5" min="1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'levels':
+                        block.innerHTML = '<label>Price Levels (±%): </label><input type="number" value="1" min="0.5" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'rsi':
+                        block.innerHTML = '<label>RSI Period: </label><input type="number" value="14" min="2"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'macd':
+                        block.innerHTML = '<label>MACD (Fast,Slow,Signal): </label><input type="number" value="12" min="1">,<input type="number" value="26" min="1">,<input type="number" value="9" min="1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'stopLoss':
+                        block.innerHTML = '<label>Stop Loss (%): </label><input type="number" value="2" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    // New features
+                    case 'bollinger':
+                        block.innerHTML = '<label>Bollinger Bands (Period, Dev): </label><input type="number" value="20" min="2">,<input type="number" value="2" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'ma':
+                        block.innerHTML = '<label>Moving Average (Period, Type): </label><input type="number" value="50" min="1"><select><option>SMA</option><option>EMA</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'stochastic':
+                        block.innerHTML = '<label>Stochastic (K, D, Smooth): </label><input type="number" value="14" min="1">,<input type="number" value="3" min="1">,<input type="number" value="3" min="1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'takeProfit':
+                        block.innerHTML = '<label>Take Profit (%): </label><input type="number" value="5" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'trailingStop':
+                        block.innerHTML = '<label>Trailing Stop (%): </label><input type="number" value="1" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'maxTrades':
+                        block.innerHTML = '<label>Max Trades: </label><input type="number" value="10" min="1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'dailyLoss':
+                        block.innerHTML = '<label>Daily Loss Limit (%): </label><input type="number" value="5" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'positionSize':
+                        block.innerHTML = '<label>Position Sizing (% of Balance): </label><input type="number" value="1" min="0.1" step="0.1"><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'tradeDirection':
+                        block.innerHTML = '<label>Trade Direction: </label><select><option>Long</option><option>Short</option><option>Both</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'contractType':
+                        block.innerHTML = '<label>Contract Type: </label><select><option>CALL</option><option>PUT</option><option>HIGH</option><option>LOW</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                    case 'durationUnit':
+                        block.innerHTML = '<label>Duration Unit: </label><select><option>t (ticks)</option><option>m (minutes)</option><option>h (hours)</option></select><i class="fas fa-trash-alt delete-block"></i>';
+                        break;
+                }
+                return block;
+            }
+
+            function updateBlocksVisibility() {
+                const strategyBlock = botBlocks.find(b => b.type === 'strategy');
+                if (strategyBlock) {
+                    const strategy = strategyBlock.element.querySelector('.strategy-select').value;
+                    stakeBlock.style.display = 'flex';
+                    intervalBlock.style.display = strategy === 'dca' ? 'flex' : 'none';
+                    levelsBlock.style.display = strategy === 'grid' ? 'flex' : 'none';
+                    rsiBlock.style.display = strategy === 'scalping' ? 'flex' : 'none';
+                    macdBlock.style.display = strategy === 'scalping' ? 'flex' : 'none';
+                    stopLossBlock.style.display = 'flex';
+                } else {
+                    stakeBlock.style.display = 'none';
+                    intervalBlock.style.display = 'none';
+                    levelsBlock.style.display = 'none';
+                    rsiBlock.style.display = 'none';
+                    macdBlock.style.display = 'none';
+                    stopLossBlock.style.display = 'none';
+                }
+            }
+
+            document.getElementById('saveToList').addEventListener('click', () => {
+                const botName = prompt('Bot Name:');
+                if (botName) {
+                    const config = {
+                        name: botName,
+                        blocks: botBlocks.map(b => ({ type: b.type, content: b.element.outerHTML })),
+                        market: document.querySelector('.market-select')?.value || 'Derived',
+                        symbol: document.querySelector('.symbol-select')?.value || 'R_100'
+                    };
+                    savedBots.push(config);
+                    localStorage.setItem('savedBots', JSON.stringify(savedBots));
+                    renderBotList();
+                    alert('Bot saved!');
+                }
+            });
+
+            document.getElementById('loadFromList').addEventListener('click', () => {
+                alert('Select a bot from the list below.');
+            });
+
+            function loadBot(config) {
+                botWorkspace.innerHTML = '<div class="block-group block-group-1" id="tradeParams"><div class="block-title">Trade Parameters</div></div><div class="bot-preview"><h3>Bot Preview</h3><p>Real Performance: <span id="realProfit">0.00</span> | Win Rate: <span id="winRate">0%</span> | Trades: <span id="tradeCount">0</span> | Commission: <span id="commissionEarned">0.00</span></p><p class="commission-note">Note: A 3% commission is applied to each trade\'s potential payout.</p><div class="backtest-form" id="backtestForm"><label for="backtestPeriod">Backtest Period (minutes):</label><input type="number" id="backtestPeriod" min="1" value="10" step="1"><button type="button" class="btn btn-secondary" id="runBacktest">Run Backtest</button></div><canvas id="previewChart"></canvas></div><div class="risk-section"><h4>Risk Management</h4><p>Max Drawdown: <span id="maxDrawdown">0.00%</span> | Risk Level: <span id="riskLevel">Low</span></p></div>';
+                botBlocks = [];
+                config.blocks.forEach(blockData => {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = blockData.content;
+                    const block = temp.firstChild;
+                    block.draggable = true;
+                    block.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('delete-block')) block.remove();
+                    });
+                    botWorkspace.querySelector('#tradeParams').appendChild(block);
+                    botBlocks.push({ type: blockData.type, element: block });
+                });
+                document.querySelector('.market-select').value = config.market;
+                document.querySelector('.symbol-select').value = config.symbol;
+                initializeChart();
+                updateBlocksVisibility();
+                updatePreview();
+                alert('Bot loaded!');
+            }
+
+            runButton.addEventListener('click', () => {
+                if (isRunning) {
+                    stopBot();
+                } else {
+                    const marketBlock = botBlocks.find(b => b.type === 'market');
+                    const strategyBlock = botBlocks.find(b => b.type === 'strategy');
+                    if (!marketBlock || !strategyBlock) {
+                        alert('Please add market and strategy blocks to run the bot.');
+                        return;
+                    }
+                    const symbol = marketBlock.element.querySelector('.symbol-select').value;
+                    startBot(symbol);
+                }
+            });
+
+            document.getElementById('playBtn').addEventListener('click', () => {
+                const marketBlock = botBlocks.find(b => b.type === 'market');
+                const strategyBlock = botBlocks.find(b => b.type === 'strategy');
+                if (!marketBlock || !strategyBlock) {
+                    alert('Please add market and strategy blocks to run the bot.');
+                    return;
+                }
+                const symbol = marketBlock.element.querySelector('.symbol-select').value;
+                startBot(symbol);
+            });
+
+            document.getElementById('pauseBtn').addEventListener('click', () => {
+                if (isRunning) {
+                    statusTag.classList.remove('running');
+                    statusTag.classList.add('not-running');
+                    statusTag.textContent = 'Paused';
+                }
+            });
+
+            document.getElementById('stopBtn').addEventListener('click', () => {
+                stopBot();
+            });
+
+            document.querySelector('.action-btn[title="Clear Workspace"]').addEventListener('click', () => {
+                if (confirm('Clear all blocks?')) {
+                    botWorkspace.innerHTML = '<div class="block-group block-group-1" id="tradeParams"><div class="block-title">Trade Parameters</div></div><div class="bot-preview"><h3>Bot Preview</h3><p>Real Performance: <span id="realProfit">0.00</span> | Win Rate: <span id="winRate">0%</span> | Trades: <span id="tradeCount">0</span> | Commission: <span id="commissionEarned">0.00</span></p><p class="commission-note">Note: A 3% commission is applied to each trade\'s potential payout.</p><div class="backtest-form" id="backtestForm"><label for="backtestPeriod">Backtest Period (minutes):</label><input type="number" id="backtestPeriod" min="1" value="10" step="1"><button type="button" class="btn btn-secondary" id="runBacktest">Run Backtest</button></div><canvas id="previewChart"></canvas></div><div class="risk-section"><h4>Risk Management</h4><p>Max Drawdown: <span id="maxDrawdown">0.00%</span> | Risk Level: <span id="riskLevel">Low</span></p></div>';
+                    botBlocks = [];
+                    initializeChart();
+                    updatePreview();
+                }
+            });
+
+            document.querySelector('.action-btn[title="New Bot"]').addEventListener('click', () => {
+                if (confirm('Start new bot?')) {
+                    document.querySelector('.action-btn[title="Clear Workspace"]').click();
+                }
+            });
+
+            chartTypeSelect.addEventListener('change', () => {
+                currentChartType = chartTypeSelect.value;
+                previewChart.destroy();
+                initializeChart();
+                if (isRunning) {
+                    const marketBlock = botBlocks.find(b => b.type === 'market');
+                    if (marketBlock) startBot(marketBlock.element.querySelector('.symbol-select').value);
+                }
+            });
+
+            runBacktestBtn.addEventListener('click', () => {
+                const marketBlock = botBlocks.find(b => b.type === 'market');
+                const strategyBlock = botBlocks.find(b => b.type === 'strategy');
+                const stakeBlock = botBlocks.find(b => b.type === 'stake');
+                if (!marketBlock || !strategyBlock || !stakeBlock) {
+                    alert('Please configure market, strategy, and stake for backtesting.');
+                    return;
+                }
+                const symbol = marketBlock.element.querySelector('.symbol-select').value;
+                const strategy = strategyBlock.element.querySelector('.strategy-select').value;
+                const stake = parseFloat(stakeBlock.element.querySelector('input').value);
+                const period = parseInt(document.getElementById('backtestPeriod').value) * 60 * 1000;
+                runBacktest(symbol, strategy, stake, period);
+            });
+
+            function runBacktest(symbol, strategy, stake, period) {
+                const token = sessionStorage.getItem('deriv_token');
+                if (!token) {
+                    alert('Please log in to Deriv for backtesting.');
+                    return;
+                }
+                let backtestWs = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
+                backtestWs.onopen = () => {
+                    backtestWs.send(JSON.stringify({ authorize: token }));
+                };
+                backtestWs.onmessage = (msg) => {
+                    const data = JSON.parse(msg.data);
+                    if (data.msg_type === 'authorize') {
+                        if (data.error) {
+                            console.error('Authorization error:', data.error.message);
+                            backtestWs.close();
+                        } else {
+                            const start = Math.floor((Date.now() - period) / 1000);
+                            backtestWs.send(JSON.stringify({ ticks_history: symbol, end: 'latest', start: start, count: 0, style: 'ticks' }));
+                        }
+                    } else if (data.msg_type === 'history') {
+                        backtestWs.close();
+                        processBacktestData(strategy, stake, data.history);
+                    }
+                };
+            }
+
+            // Initialize
+            initializeChart();
+            const hamburger = document.querySelector('.hamburger');
+            const navLinks = document.querySelector('.nav-links-container');
+            if (hamburger) {
+                hamburger.addEventListener('click', () => {
+                    navLinks.classList.toggle('active');
+                    const icon = hamburger.querySelector('i');
+                    icon.classList.toggle('fa-bars');
+                    icon.classList.toggle('fa-times');
+                });
+            }
+        });
+    </script>
+</body>
+</html>
